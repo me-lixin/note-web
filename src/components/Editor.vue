@@ -8,24 +8,27 @@ import { useRoute } from 'vue-router'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { updateNote,getNoteById } from '@/api/note'
+import { defineProps } from 'vue'
+
+const props = defineProps<{
+  editors: Map<string, Vditor>
+  noteId: string
+}>()
 
 const route = useRoute()
 const vditorRef = ref<HTMLDivElement | null>(null)
-const editors = ref(new Map)
 const content = ref('')
+const editor = ref<Vditor>()
 
-const getEditor = (id: string) => {
-  return editors[id]
-}
 
 // 异步加载笔记内容
 const loadNoteContent = async (id) => {
   content.value = '模拟数据:' + id
-  let editor = getEditor(id)
-  if (editor){
-    editor?.setValue(content.value)
-  }else {
-    editor = new Vditor(vditorRef.value!, {
+}
+
+onMounted(() => {
+  if (props.noteId.includes('new')){
+    editor.value = new Vditor(vditorRef.value!, {
       height	: '100vh',
       width:'100%',
       mode: 'ir',
@@ -43,21 +46,12 @@ const loadNoteContent = async (id) => {
       placeholder: '请输入笔记内容...',
       value: content.value
     })
-    editors.value.set(id,editor)
+    props.editors.set(props.noteId,editor)
+  } else {
+    editor.value = props.editors.get(props.noteId)
+    loadNoteContent(route.query.id)
+    editor.value.value = content.value
   }
-}
-watch(
-    () => route.params.cid,
-    (id) => {
-
-      if (!id) return
-      loadNoteContent(id)
-    },
-    { immediate: true }
-)
-onMounted(() => {
-  const id = route.params.id
-  if (id) loadNoteContent(id)
 })
 
 </script>
