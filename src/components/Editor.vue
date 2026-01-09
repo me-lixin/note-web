@@ -3,32 +3,31 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch  } from 'vue'
+import { onMounted, ref, watch,computed  } from 'vue'
 import { useRoute } from 'vue-router'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { updateNote,getNoteById } from '@/api/note'
-import { defineProps } from 'vue'
 
 const props = defineProps<{
   editors: Map<string, Vditor>
+  onEditTab: () => void
   noteId: string
+  cid: string
 }>()
 
 const route = useRoute()
 const vditorRef = ref<HTMLDivElement | null>(null)
 const content = ref('')
-const editor = ref<Vditor>()
+const editor = computed(()=>{
+  return props.editors.get(props.noteId)
+})
 
-
-// 异步加载笔记内容
-const loadNoteContent = async (id) => {
-  content.value = '模拟数据:' + id
-}
-
-onMounted(() => {
-  if (props.noteId.includes('new')){
-    editor.value = new Vditor(vditorRef.value!, {
+function init(nid){
+  let tabKey = `${props.cid}-${nid}`
+  let edit = null;
+  if (!props.editors.has(tabKey)){
+    edit = new Vditor(vditorRef.value!, {
       height	: '100vh',
       width:'100%',
       mode: 'ir',
@@ -46,14 +45,23 @@ onMounted(() => {
       placeholder: '请输入笔记内容...',
       value: content.value
     })
-    props.editors.set(props.noteId,editor)
+    props.editors.set(tabKey,edit)
   } else {
-    editor.value = props.editors.get(props.noteId)
-    loadNoteContent(route.query.id)
-    editor.value.value = content.value
+    props.editors.get(tabKey)
+    loadData(props.noteId)
+    edit.value = content.value
   }
-})
+  return edit
+}
 
+// 异步加载笔记内容
+async function loadData(noteId){
+  content.value = '模拟数据:' + noteId
+}
+
+onMounted(() => {
+  init(props.noteId)
+})
 </script>
 
 <style>

@@ -15,7 +15,9 @@
               <span>肄宁在线笔记</span>
             </div>
           </template>
-          <NoteTree />
+          <NoteTree
+              :onEditTab="handleEditTabFromTree"
+          />
         </a-card>
       </a-layout-sider>
 
@@ -25,16 +27,29 @@
             size="small"
             :activeKey="activeKey"
             :tabBarGutter="0"
-            @change="onTabChange"
-            @edit="onTabEdit"
+
             :tabBarStyle="{ background:'#f0f0f0' }"
         >
+          <!--            @change="onTabChange"-->
+          <!--            @edit="onTabEdit"-->
           <a-tab-pane
               v-for="tab in tabs"
               :key="tab.key"
               :tab="tab.title"
               :closable="tab.closable"
-          />
+          >
+            <a-layout-content style="padding: 0; position: relative">
+              <router-view v-slot="{ Component }">
+                <component
+                    :is="Component"
+                    :noteId="noteId"
+                    :cid="cid"
+                    :editors="editors"
+                    :onEditTab="handleEditTabFromList"
+                />
+              </router-view>
+            </a-layout-content>
+          </a-tab-pane>
           <!-- 右侧额外内容 -->
           <template #rightExtra>
             <a-dropdown>
@@ -48,9 +63,7 @@
             </a-dropdown>
           </template>
         </a-tabs>
-        <a-layout-content style="padding: 0; position: relative">
-          <router-view />
-        </a-layout-content>
+
         <!-- 右侧悬浮操作区 -->
         <div class="floating-actions">
           <a-tooltip title="搜索">
@@ -79,107 +92,29 @@
 
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed,ref,nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { EditOutlined } from '@ant-design/icons-vue'
 import NoteTree from '@/components/NoteTree.vue'
-
-
-
-const route = useRoute()
+//状态管理
+const noteId = ref()
+const cid = ref()
+const editors = ref(new Map)
+const activeKey = ref('home')
+const tabs = ref([{key: 'home', title: '笔记列表', closable: false}])
 const router = useRouter()
 
-/**
- * Tabs 完全由当前路由 + 已访问路由派生
- * 这里只保留一个“访问过的 route 集合”
- */
-const visitedRoutes = new Set()
+async function handleEditTabFromTree(tid,nid){
+  cid.value = tid
+}
+function handleEditTabFromList(tid,nid){
+  noteId.value = nid
+  console.log('tid',tid)
+  console.log('nid',nid)
+  router.push(`note/${tid}/${nid}`)
 
-/**
- * 当前激活 tab
- */
-const activeKey = computed(() => route.fullPath)
-
-/**
- * 根据 route 生成 tab 信息
- */
-function resolveTab(route) {
-  const { path, params, query, fullPath } = route
-
-  if (path === '/list') {
-    return {
-      key: fullPath,
-      title: '概览',
-      closable: false
-    }
-  }
-
-  if (path === '/note/new') {
-    return {
-      key: fullPath,
-      title: '新笔记',
-      closable: true
-    }
-  }
-
-  if (path.startsWith('/note/') && params.id) {
-    return {
-      key: fullPath,
-      title: `笔记 ${params.id}`,
-      closable: true
-    }
-  }
-
-  return {
-    key: fullPath,
-    title: fullPath,
-    closable: true
-  }
 }
 
-/**
- * Tabs 列表（派生数据）
- */
-const tabs = computed(() => {
-  // 记录访问过的路由
-  visitedRoutes.add(route.fullPath)
-  let tabs = Array.from(visitedRoutes).map(path => {
-    return resolveTab(router.resolve(path))
-  })
-  console.log('tabs',tabs)
-  return tabs
-})
-
-/**
- * 点击 tab：只做 router.push
- */
-function onTabChange(key: string) {
-  if (key !== route.fullPath) {
-    router.push(key)
-  }
-}
-
-/**
- * 关闭 tab
- */
-function onTabEdit(targetKey: string, action: 'remove') {
-  if (action !== 'remove') return
-
-  const paths = Array.from(visitedRoutes)
-  const index = paths.indexOf(targetKey)
-
-  visitedRoutes.delete(targetKey)
-
-  // 如果关闭的是当前 tab，跳转到前一个
-  if (targetKey === route.fullPath) {
-    const next =
-        paths[index - 1] ||
-        paths[index + 1] ||
-        '/list'
-
-    router.push(next)
-  }
-}
 </script>
 
 <style>

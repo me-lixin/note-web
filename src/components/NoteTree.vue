@@ -15,7 +15,6 @@
           <template #overlay>
             <a-menu @click="({ key: menuKey }) => onContextMenuClick(dataRef.id, menuKey)">
               <a-menu-item key="addDir">新增目录</a-menu-item>
-              <a-menu-item key="add">新增笔记</a-menu-item>
               <a-menu-item key="rename">重命名</a-menu-item>
               <a-menu-item key="delete">删除</a-menu-item>
             </a-menu>
@@ -27,24 +26,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted,defineProps } from 'vue'
 import { useRouter } from 'vue-router'
 
-const router = useRouter()
-
+const props = defineProps<{
+  onEditTab: (any) => void
+}>()
 
 // 树数据
 const treeData = ref([])
 // 默认展开/选中
-const expandedKeys = ref()
-const selectedKeys = ref()
+const expandedKeys = ref([1])
+const selectedKeys = ref([1])
 
 // 点击节点跳转
 const handleSelect = (selectedKeysArr) => {
-  if (selectedKeysArr.length) {
-    const cid = selectedKeysArr[0]
-    router.push(`/list?cid=${cid}`)
-  }
+  props.onEditTab(selectedKeysArr[0])
 }
 
 const onContextMenuClick = (treeKey, menuKey) => {
@@ -56,10 +53,6 @@ const onContextMenuClick = (treeKey, menuKey) => {
   switch (menuKey) {
     case 'addDir':
       console.log('新增目录', node)
-      break
-    case 'add':
-      router.push(`/note/new?cid=${node.id}`)
-      console.log('新增笔记', node)
       break
     case 'rename':
       console.log('重命名', node)
@@ -110,5 +103,6 @@ onMounted(() => {
       ]
     }
   ]
+  handleSelect(selectedKeys.value)
 })
 </script>

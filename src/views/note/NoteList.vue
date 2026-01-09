@@ -2,7 +2,6 @@
   <div>
     <a-list :grid="{ column: 3}"
         :data-source="notes"
-        :rowKey="item => item.id"
         bordered
     >
       <!-- 使用 renderItem 插槽 -->
@@ -14,7 +13,7 @@
             Card contentCard contentCard content
             <template #actions>
               <delete-outlined key="delete" style="color: red" @click="onDelete(item.id)"/>
-              <edit-outlined key="edit" @click="open(item.id)"/>
+              <edit-outlined key="edit" @click="edit(item.id)"/>
             </template>
           </a-card>
         </a-list-item>
@@ -26,23 +25,31 @@
 <script setup lang="ts">
 import { useRouter,useRoute } from 'vue-router'
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons-vue';
-import {defineProps} from "vue";
+import {ref,defineExpose,computed} from 'vue'
 
 const props = defineProps<{
-  cid: string
+  cid: number,
+  onEditTab: (...any) => void
 }>()
-const router = useRouter()
 
-const notes = [
-  { id: '1', title: '第一篇笔记' },
-  { id: '2', title: '第二篇笔记' },
-  { id: '3', title: '第二篇笔记' },
-  { id: '4', title: '第二篇笔记' }
-]
+const notes = computed(() => {
+  return loadData(props.cid)
+})
 
-const open = (id: string) => {
-  router.push(`/note/${props.cid}/${id}`)
+function loadData(cid: number) {
+  console.log('加载数据，cid=', cid)
+  return [
+    { id: '1', title: `第一篇笔记 - ${cid}` },
+    { id: '2', title: `第二篇笔记 - ${cid}` },
+    { id: '3', title: `第三篇笔记 - ${cid}` },
+    { id: '4', title: `第四篇笔记 - ${cid}` }
+  ]
 }
+function edit(key){
+  console.log(key)
+  props.onEditTab(props.cid,key)
+}
+defineExpose({ loadData })
 </script>
 
 <style>
