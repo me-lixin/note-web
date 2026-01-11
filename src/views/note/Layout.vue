@@ -6,7 +6,7 @@
           collapsible
           :collapsedWidth="0"
           theme="light"
-          width="200"
+          width="220"
       >
         <a-card style="height: 100%;border-radius: 0;">
           <template #title>
@@ -27,11 +27,11 @@
             size="small"
             :activeKey="activeKey"
             :tabBarGutter="0"
-
+            @change="onTabChange"
+            @edit="onTabEdit"
             :tabBarStyle="{ background:'#f0f0f0' }"
         >
-          <!--            @change="onTabChange"-->
-          <!--            @edit="onTabEdit"-->
+
           <a-tab-pane
               v-for="tab in tabs"
               :key="tab.key"
@@ -42,10 +42,9 @@
               <router-view v-slot="{ Component }">
                 <component
                     :is="Component"
-                    :noteId="noteId"
                     :cid="cid"
-                    :editors="editors"
                     :onEditTab="handleEditTabFromList"
+                    :onEditTabKey="handleEditTabFromEditor"
                 />
               </router-view>
             </a-layout-content>
@@ -54,37 +53,16 @@
           <template #rightExtra>
             <a-dropdown>
               <template #overlay>
-                <a-menu>
+                <a-menu @click="({ key: menuKey }) => onContextMenuClick(menuKey)">
                   <a-menu-item key="profile">个人资料</a-menu-item>
                   <a-menu-item key="logout">退出登录</a-menu-item>
                 </a-menu>
               </template>
-              <a-avatar style="color: #f56a00; background-color: #fde3cf; margin-right: 15px;">U</a-avatar>
+              <a-avatar style="color: #f5f5f5; background-color: #8d6e63; margin-right: 15px;">{{user.nickname}}</a-avatar>
             </a-dropdown>
           </template>
         </a-tabs>
 
-        <!-- 右侧悬浮操作区 -->
-        <div class="floating-actions">
-          <a-tooltip title="搜索">
-            <a-button
-                shape="circle"
-                type="primary"
-                @click="onSearch"
-            >
-              <SearchOutlined />
-            </a-button>
-          </a-tooltip>
-          <a-tooltip title="分享">
-            <a-button
-                shape="circle"
-                type="default"
-                @click="onShare"
-            >
-              <ShareAltOutlined />
-            </a-button>
-          </a-tooltip>
-        </div>
       </a-layout>
     </a-layout>
   </a-layout>
@@ -92,29 +70,76 @@
 
 
 <script setup lang="ts">
-import { computed,ref,nextTick } from 'vue'
+import { computed,ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { EditOutlined } from '@ant-design/icons-vue'
+import { EditOutlined} from '@ant-design/icons-vue'
 import NoteTree from '@/components/NoteTree.vue'
-//状态管理
-const noteId = ref()
-const cid = ref()
-const editors = ref(new Map)
-const activeKey = ref('home')
-const tabs = ref([{key: 'home', title: '笔记列表', closable: false}])
-const router = useRouter()
 
-async function handleEditTabFromTree(tid,nid){
+
+const router = useRouter()
+const route = useRoute()
+//状态管理
+const cid = ref()
+const activeKey = computed(()=> route.fullPath)
+const tabs = ref([{key: '/list', title: '笔记列表', closable: false}])
+const user = JSON.parse(localStorage.getItem('user'))
+console.log('user',user)
+function handleEditTabFromEditor(nid,title){
+  let path = `/note/new/${cid.value}/${route.params.tempId}`
+  let tab = tabs.value.find(tab=> tab.key == path)
+  tab.key = `/note/edit/${cid.value}/${nid}`
+  tab.title = title
+  route.params.tempId = nid
+  router.replace(tab.key)
+}
+function onContextMenuClick(menuKey){
+  console.log(menuKey)
+  if (menuKey == 'logout'){
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    router.replace('/login')
+  }
+}
+async function handleEditTabFromTree(tid){
   cid.value = tid
 }
-function handleEditTabFromList(tid,nid){
-  noteId.value = nid
-  console.log('tid',tid)
-  console.log('nid',nid)
-  router.push(`note/${tid}/${nid}`)
+function handleEditTabFromList(tid,note){
+  let tabKey = `/note/edit/${tid}/${note.id}`
+  let exist = tabs.value.find((tab=> tab.key == tabKey))
+  if(exist){
+    router.replace(tabKey)
+  }else {
+    tabs.value.push({key: tabKey, title: note.title, closable: true})
+    router.replace(tabKey)
+  }
+  console.log('tabs',tabs.value)
+}
+function onTabChange(key){
+  if (key == 'home'){
+    router.replace('/list')
+  }else {
+    router.replace(key)
+  }
+}
+function onTabEdit(tabKey,action){
+  if (action == 'remove'){
+    const index = tabs.value.findIndex(tab => tab.key === tabKey)
+    const isActive = activeKey.value == tabKey
+
+    tabs.value.splice(index, 1)
+
+    if (!isActive) return
+
+    router.replace(tabs.value[index - 1].key)
+  }
+  if (action == 'add'){
+    let tempId = Date.now() as string
+    let path = `/note/new/${cid.value}/${tempId}`
+    tabs.value.push({key: path, title: '笔记', closable: true})
+    router.replace(path)
+  }
 
 }
-
 </script>
 
 <style>
@@ -150,23 +175,6 @@ function handleEditTabFromList(tid,nid){
   height: 100%;
 }
 
-/* 悬浮按钮容器 */
-.floating-actions {
-  position: fixed;
-  right: 15px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1000;
-
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* 按钮增强一点质感 */
-.floating-actions .ant-btn {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
 /* Tab 标签本身 */
 .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab,
 .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {

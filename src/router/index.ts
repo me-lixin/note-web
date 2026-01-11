@@ -4,6 +4,16 @@ const router = createRouter({
     history: createWebHistory(),
     routes: [
         {
+            path: '/login',
+            name: 'Login',
+            component: () => import('@/views/MinimalLogin.vue')
+        },
+        {
+            path: '/register',
+            name: 'Register',
+            component: () => import('@/views/MinimalRegister.vue')
+        },
+        {
             path: '/',
             component: () => import('@/views/note/Layout.vue'),
             redirect: '/list',
@@ -14,19 +24,44 @@ const router = createRouter({
                     component: () => import('@/views/note/NoteList.vue')
                 },
                 {
-                    path: 'note/new',
+                    path: 'note/new/:tid/:tempId',
                     name: 'NoteNew',
-                    component: () => import('@/components/Editor.vue')
+                    component: () => import('@/components/Editor.vue'),
+                    props:true
                 },
                 {
-                    path: 'note/:id',
+                    path: 'note/edit/:tid/:nid',
                     name: 'NoteEdit',
                     component: () => import('@/components/Editor.vue'),
-                    props: true
-                }
+                    props:true
+                },
             ]
+        },
+        {
+            path: '/:pathMatch(.*)*',
+            redirect: '/'
         }
     ]
 })
+router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem('token')
+    console.log(token)
+    // 1️⃣ 未登录，访问非登录页
+    if (!token && to.path !== '/login' && to.path !== '/register') {
+        next('/login')
+        return
+    }
+
+    // 2️⃣ 已登录，还访问登录 / 注册页
+    if (token && (to.path === '/login' || to.path === '/register')) {
+        next('/')
+        return
+    }
+    if (from.name === undefined && to.path !== '/list') {
+        next('/list')
+    }
+    next()
+})
+
 
 export default router
