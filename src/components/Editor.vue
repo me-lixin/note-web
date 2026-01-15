@@ -19,41 +19,61 @@
         <SaveOutlined />
       </a-button>
     </a-tooltip>
-    <a-tooltip title="分享">
-      <a-button
-          shape="circle"
-          type="default"
-          @click="onShare"
-      >
-        <ShareAltOutlined />
-      </a-button>
-    </a-tooltip>
+    <!-- 分享按钮 + 下拉菜单 -->
+    <a-dropdown>
+      <a-tooltip title="分享">
+        <a-button
+            shape="circle"
+            type="default"
+            @click="onShare"
+        >
+          <ShareAltOutlined />
+        </a-button>
+      </a-tooltip>
+      <template #overlay>
+        <a-menu @click="handleMenuClick">
+          <a-menu-item key="generate">生成链接</a-menu-item>
+          <a-menu-item key="manage">管理分享</a-menu-item>
+        </a-menu>
+      </template>
+    </a-dropdown>
   </div>
-
+  <Search v-model:show="searchShow" :onEditTab="edit"/>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch,computed  } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute,onBeforeRouteUpdate } from 'vue-router'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import { saveNote, getNoteById} from '../api/note'
-import { SearchOutlined,ShareAltOutlined,SaveOutlined,CloudUploadOutlined } from '@ant-design/icons-vue'
+import { SearchOutlined,ShareAltOutlined,SaveOutlined } from '@ant-design/icons-vue'
 import {message} from "ant-design-vue";
+import Search from '../components/Search.vue'
+
 
 const route = useRoute()
 
 const props = defineProps<{
   onEditTabKey: (...any) => void
+  onEditTab: (...any) => void
 }>()
 const vditorRef = ref<HTMLDivElement | null>(null)
 const vditor = ref<Vditor>()
+const searchShow = ref(false)
+
 const note = ref({
   categoryId:'',
   title:'',
   id:'',
   content:''
 })
+function onSearch(){
+  searchShow.value = true
+}
+function edit(item){
+  props.onEditTab(item.categoryId,item)
+}
 // 异步加载笔记内容
 function loadData(noteId){
     getNoteById(noteId).then(resp=>{
@@ -66,20 +86,20 @@ function loadData(noteId){
     })
 }
 function onSave(){
-  console.log('route',route)
   if (route.params.nid){
     note.value.id = route.params.nid as string
   } else {
     note.value.categoryId = route.params.tid as string
-    note.value.content = vditor.value.getValue();
-    note.value.title = vditor.value.getValue().split('\n')[0];
   }
-  console.log('note.value',note.value)
-
+  note.value.content = vditor.value.getValue();
+  note.value.title = vditor.value.getValue().split('\n')[0];
   saveNote(note.value).then(resp=>{
     if (resp.code==200){
-      props.onEditTabKey(resp.data,note.value.title)
-      note.value.id = resp.data
+      console.log(route.path)
+      if (route.path.includes('new')){
+        props.onEditTabKey(resp.data,note.value.title)
+        note.value.id = resp.data
+      }
       message.success("已保存")
     }else {
       message.error(resp.msg)
@@ -87,24 +107,21 @@ function onSave(){
   })
 }
 onMounted(() => {
-  console.log('onMounted',route)
   if (route.params.nid){
     loadData(route.params.nid)
   } else {
     init('')
   }
 })
-
-watch(()=>route.params.nid,(nid)=>{
-  if (nid){
-    console.log('watch',route.params.nid)
-    loadData(route.params.nid)
-  } else {
-    init('')
+onBeforeRouteUpdate((to, from) => {
+  console.log('to',to)
+  console.log('from',from)
+  if (to.params.nid !== from.params.nid) {
+    loadData(to.params.nid);
   }
-})
+});
 
-function init(content){
+async function init(content){
   vditor.value = new Vditor(vditorRef.value!, {
     height	: '100vh',
     width:'100%',

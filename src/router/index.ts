@@ -43,25 +43,23 @@ const router = createRouter({
         }
     ]
 })
-router.beforeEach((to, from, next) => {
-    const token = localStorage.getItem('token')
-    console.log(token)
-    // 1️⃣ 未登录，访问非登录页
-    if (!token && to.path !== '/login' && to.path !== '/register') {
-        next('/login')
-        return
-    }
-
-    // 2️⃣ 已登录，还访问登录 / 注册页
-    if (token && (to.path === '/login' || to.path === '/register')) {
-        next('/')
-        return
-    }
-    if (from.name === undefined && to.path !== '/list') {
-        next('/list')
-    }
-    next()
-})
+// router.beforeEach((to, from, next) => {
+//     const token = localStorage.getItem('token')
+//     console.log(token)
+//     if (!token && to.path !== '/login' && to.path !== '/register') {
+//         next('/login')
+//         return
+//     }
+//
+//     if (token && (to.path === '/login' || to.path === '/register')) {
+//         next('/')
+//         return
+//     }
+//     if (from.name === undefined && to.path !== '/list') {
+//         next('/list')
+//     }
+//     next()
+// })
 
 
 export default router

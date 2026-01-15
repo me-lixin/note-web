@@ -41,6 +41,7 @@
             <a-layout-content style="padding: 0; position: relative">
               <router-view v-slot="{ Component }">
                 <component
+                    :key="tab.key"
                     :is="Component"
                     :cid="cid"
                     :onEditTab="handleEditTabFromList"
@@ -62,7 +63,6 @@
             </a-dropdown>
           </template>
         </a-tabs>
-
       </a-layout>
     </a-layout>
   </a-layout>
@@ -83,7 +83,8 @@ const cid = ref()
 const activeKey = computed(()=> route.fullPath)
 const tabs = ref([{key: '/list', title: '笔记列表', closable: false}])
 const user = JSON.parse(localStorage.getItem('user'))
-console.log('user',user)
+
+
 function handleEditTabFromEditor(nid,title){
   let path = `/note/new/${cid.value}/${route.params.tempId}`
   let tab = tabs.value.find(tab=> tab.key == path)
@@ -180,10 +181,18 @@ function onTabEdit(tabKey,action){
 .ant-tabs-card > .ant-tabs-nav .ant-tabs-tab-active {
   border-radius: 0 !important;
   border-left: none;
+  max-width: 140px;
   border-bottom: none !important;}
 /* 去掉 + 按钮边框 */
 .ant-tabs-nav-add {
   border: none !important;
+}
+.ant-tabs-tab-btn {
+  display: inline-block;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 </style>

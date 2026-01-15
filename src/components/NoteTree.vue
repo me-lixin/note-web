@@ -9,7 +9,8 @@
         :selectedKeys="selectedKeys"
         :field-names="{ title: 'name', key: 'id', children: 'children' }"
         @select="handleSelect"
-        @drop="onDrop"
+        @dragstart="(e) => onDragStart(e)"
+
     >
       <template #title="{ name, dataRef }">
         <a-input
@@ -21,7 +22,12 @@
         />
         <a-dropdown v-if="!dataRef.editing" :trigger="['contextmenu']" >
 
-          <span style="max-width: 100px; display: block;overflow: auto; min-height: 20px;">{{dataRef.name}}</span>
+          <span style="max-width: 100px; display: block;overflow: auto; min-height: 20px;"
+                class="tree-drop-node"
+                :id="dataRef.id"
+                @dragover.prevent
+                @drop="(e) => onDrop(e, dataRef)"
+          >{{dataRef.name}}</span>
           <template #overlay>
             <a-menu v-if="dataRef.level<3" @click="({ key: menuKey }) => onContextMenuClick(dataRef.id, menuKey)">
               <a-menu-item key="addDir">新增目录</a-menu-item>
@@ -52,28 +58,41 @@ const selectedKeys = ref<string[]>([])
 const customExpanded = ref<string[]>([])
 const inputRef = ref()
 
-function onDrop(info){
-  console.log('info',info)
-  const dragKey = info.dragNode.id
-  const dropKey = info.node.id
-
-  // 1. 深拷贝，避免引用问题
-  const data = JSON.parse(JSON.stringify(treeData.value))
-
-  // 2. 先移除被拖动节点
-  const dragNode = findAndRemoveNode(data, dragKey)
-
-  // 3. 插入到新位置
-  insertNode(
-      data,
-      dropKey,
-      dragNode,
-      info.dropPosition,
-      info.dropToGap
+function onDragStart(e: DragEvent) {
+  console.log(e.node.id)
+  console.log(e)
+  e.event.dataTransfer?.setData(
+      'application/json',
+      JSON.stringify({ cid: e.node.id })
   )
+}
+function onDrop(e: DragEvent, categoryId: string) {
 
-  // 4. 更新 treeData
-  treeData.value = data
+    const raw = e.dataTransfer?.getData('application/json')
+  console.log('raw',raw)
+
+  console.log('info',categoryId)
+  if (!raw) return
+  // const dragKey = info.dragNode.id
+  // const dropKey = info.node.id
+  //
+  // // 1. 深拷贝，避免引用问题
+  // const data = JSON.parse(JSON.stringify(treeData.value))
+  //
+  // // 2. 先移除被拖动节点
+  // const dragNode = findAndRemoveNode(data, dragKey)
+  //
+  // // 3. 插入到新位置
+  // insertNode(
+  //     data,
+  //     dropKey,
+  //     dragNode,
+  //     info.dropPosition,
+  //     info.dropToGap
+  // )
+  //
+  // // 4. 更新 treeData
+  // treeData.value = data
 }
 
 function findAndRemoveNode(tree, key) {
@@ -119,7 +138,6 @@ function focusInput() {
 
 // 点击节点跳转
 const handleSelect = (keys) => {
-  console.log('treeData.value ',treeData.value )
   if (keys.length) {
     selectedKeys.value = keys
     props.onEditTab(keys[0])
@@ -137,8 +155,6 @@ const handleSelect = (keys) => {
   if (expandedKeys.value.length == 0){
     selectedKeys.value = []
   }
-  console.log('expandedKeys.value',expandedKeys.value)
-  console.log('selectedKeys.value',selectedKeys.value)
 }
 
 const onContextMenuClick = (treeKey, menuKey) => {
@@ -261,3 +277,5 @@ onMounted( () => {
   loadTree()
 })
 </script>
+<style>
+</style>

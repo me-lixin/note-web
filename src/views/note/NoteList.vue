@@ -9,7 +9,9 @@
       <!-- 使用 renderItem 插槽 -->
       <template #renderItem="{ item }">
         <a-list-item >
-          <a-card :title="item.title" :bodyStyle="{ height: '90px', overflow: 'auto' }">
+          <a-card :title="item.title" :bodyStyle="{ height: '90px', overflow: 'auto',padding:'10px' }"   draggable="true"
+                  @dragstart="(e) => onDragStart(e, item)"
+          >
             {{item.content}}
             <template #actions>
               <delete-outlined key="delete" style="color: red" @click="onDelete(item.id)"/>
@@ -43,29 +45,52 @@
         </a-button>
       </a-tooltip>
     </div>
+    <FileUpload v-model:show="uploadShow" :cid="props.cid"/>
+    <Search v-model:show="searchShow" :onEditTab="edit"/>
 
   </div>
 </template>
 
 <script setup lang="ts">
 import { DeleteOutlined, EditOutlined,SearchOutlined,CloudUploadOutlined } from '@ant-design/icons-vue';
-import {defineExpose, ref, watch} from 'vue'
+import { ref, watch} from 'vue'
 import {getNotes,deleteNote} from '../../api/note'
-import { message } from 'ant-design-vue'
+import { Modal,message } from 'ant-design-vue'
+import FileUpload from '../../components/FileUpload.vue'
+import Search from '../../components/Search.vue'
 
 const props = defineProps<{
   cid: string,
   onEditTab: (...any) => void
 }>()
+export interface Note {
+  id: string
+  title: string
+  content: string
+  updateTime?: string
+}
+const uploadShow = ref(false)
+const searchShow = ref(false)
+
 const queryParams = ref({
   current:1,
   size:9,
   categoryId:null
 })
-const notes = ref({})
-
+const notes = ref<{ records: Note[] }>({ records: [] })
+function onDragStart(e: DragEvent, note) {
+  e.dataTransfer?.setData(
+      'application/json',
+      JSON.stringify({ noteId: note.id })
+  )
+}
+function onUpload() {
+  uploadShow.value = true
+}
+function onSearch(){
+  searchShow.value = true
+}
 function loadData() {
-
   queryParams.value.categoryId = props.cid
   getNotes(queryParams.value).then(resp=>{
     if (resp.code == 200){
@@ -76,14 +101,25 @@ function loadData() {
   })
 }
 function edit(item){
-  props.onEditTab(props.cid,item)
+  props.onEditTab(item.categoryId,item)
 }
-function onDelete(id){
 
-  notes.value.records = notes.value.records.filter(n=>n.id!==id);
-  deleteNote(id).then(resp=>{
-    if (resp.code == 500){
-      message.error(resp.msg)
+function onDelete(id) {
+  Modal.confirm({
+    title: '确认删除',
+    content: '删除后将无法恢复，是否继续？',
+    okText: '删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk() {
+      return deleteNote(id).then(resp => {
+        if (resp.code === 200) {
+          notes.value.records = notes.value.records.filter(n => n.id !== id)
+          message.success('删除成功')
+        } else {
+          message.error(resp.msg)
+        }
+      })
     }
   })
 }
@@ -91,7 +127,7 @@ watch(
     () => props.cid,
     async (tid) => {
       if (!tid) {
-        notes.value = []
+        notes.value.records = []
         return
       }
       loadData()
