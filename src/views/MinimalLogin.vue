@@ -2,7 +2,9 @@
   <div class="page">
     <div class="card">
       <div class="header">
-        <h1>肄宁在线笔记</h1>
+
+
+        <h1><img src="@/assets/vue.svg" class="title-icon" />肄宁在线笔记</h1>
         <p>简单 · 专注 · 高效</p>
       </div>
 
@@ -46,7 +48,7 @@ function onSubmit() {
       localStorage.setItem('user', JSON.stringify(resp.data))
 
       message.success('登录成功')
-      router.replace('/list')
+      router.replace('/layout')
       window.location.reload()
     } else {
       message.error(resp.msg)
@@ -102,5 +104,10 @@ function toRegister() {
 
 .footer a {
   margin-left: 4px;
+}
+.title-icon {
+  width: 60px;
+  height: 60px;
+  margin: -21px 11px 1px -18px;
 }
 </style>

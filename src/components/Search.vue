@@ -67,8 +67,8 @@ function onSearch() {
   })
 }
 function onDetails(item){
-  console.log(item)
   props.onEditTab(item)
+  emit('update:show', false)
 }
 
 </script>

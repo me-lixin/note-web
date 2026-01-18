@@ -41,6 +41,9 @@ export const getNoteById = (id: string) =>
 // 新增 / 修改笔记
 export const saveNote = (data: Partial<Note>) =>
     request.put<ApiResult<void>>(`/api/note`, data)
+// 移动笔记目录
+export const moveNote = (data: Partial<Note>) =>
+    request.put<ApiResult<void>>(`/api/note/move`, data)
 
 // 删除笔记
 export const deleteNote = (id: string) =>

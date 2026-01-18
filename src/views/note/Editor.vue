@@ -1,7 +1,7 @@
 <template>
   <div ref="vditorRef" style="height: 100%;"></div>
   <div class="floating-actions">
-    <a-tooltip title="搜索">
+    <a-tooltip title="搜索" placement="left">
       <a-button
           shape="circle"
           type="default"
@@ -10,7 +10,7 @@
         <SearchOutlined />
       </a-button>
     </a-tooltip>
-    <a-tooltip title="保存">
+    <a-tooltip title="保存" placement="left">
       <a-button
           shape="circle"
           type="primary"
@@ -19,85 +19,120 @@
         <SaveOutlined />
       </a-button>
     </a-tooltip>
-    <!-- 分享按钮 + 下拉菜单 -->
-    <a-dropdown>
-      <a-tooltip title="分享">
-        <a-button
-            shape="circle"
-            type="default"
-            @click="onShare"
-        >
-          <ShareAltOutlined />
-        </a-button>
-      </a-tooltip>
-      <template #overlay>
-        <a-menu @click="handleMenuClick">
-          <a-menu-item key="generate">生成链接</a-menu-item>
-          <a-menu-item key="manage">管理分享</a-menu-item>
-        </a-menu>
-      </template>
-    </a-dropdown>
+    <a-tooltip title="分享" placement="left">
+      <a-button
+          shape="circle"
+          type="default"
+          @click="onCreatLink"
+      >
+        <ShareAltOutlined />
+      </a-button>
+    </a-tooltip>
   </div>
   <Search v-model:show="searchShow" :onEditTab="edit"/>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch,computed  } from 'vue'
-import { useRoute,onBeforeRouteUpdate } from 'vue-router'
+import { onMounted, ref,defineExpose,nextTick  } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
-import { saveNote, getNoteById} from '../api/note'
+import {saveNote, getNoteById} from '../../api/note'
+import {getLink} from '../../api/shareNote'
 import { SearchOutlined,ShareAltOutlined,SaveOutlined } from '@ant-design/icons-vue'
-import {message} from "ant-design-vue";
-import Search from '../components/Search.vue'
+import {message,Modal} from "ant-design-vue";
+import Search from '../../components/Search.vue'
 
-
-const route = useRoute()
 
 const props = defineProps<{
   onEditTabKey: (...any) => void
   onEditTab: (...any) => void
+  activeKey:string
 }>()
 const vditorRef = ref<HTMLDivElement | null>(null)
 const vditor = ref<Vditor>()
 const searchShow = ref(false)
-
 const note = ref({
   categoryId:'',
   title:'',
   id:'',
-  content:''
+  content:' '
 })
+function onCreatLink(){
+  let arr = props.activeKey.split('/')
+  let id = arr[arr.length-1]
+  let expireDay = localStorage.getItem('validDays') ?? 36500
+  getLink({
+    noteId:Number.parseInt(id),
+    expireDay:Number.parseInt(expireDay),
+    prefix:'http://localhost:5173/public/',
+  }).then(resp=>{
+    if (resp.code == 200){
+      navigator.clipboard.writeText(resp.data)
+      message.success('链接已复制')
+    } else {
+      message.error(resp.msg)
+    }
+  })
+}
+function checkSave(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (note.value.content.length == vditor.value.getValue().length) {
+      resolve()
+      return
+    }
+
+    Modal.confirm({
+      title: '内容未保存，是否保存？',
+      onOk: async () => {
+        await onSave()
+        resolve()
+      },
+      onCancel: () => {
+        resolve()
+      }
+    })
+  })
+}
 function onSearch(){
   searchShow.value = true
 }
+
 function edit(item){
   props.onEditTab(item.categoryId,item)
 }
 // 异步加载笔记内容
-function loadData(noteId){
+async function loadData(noteId?){
+  if (noteId){
     getNoteById(noteId).then(resp=>{
       if (resp.code==200){
-        note.value = resp.data || note.value
-        init(note.value.content)
+        note.value = resp.data
+        init()
+
       }else {
         message.error(resp.msg)
       }
     })
+  } else {
+    init()
+  }
+
 }
 function onSave(){
-  if (route.params.nid){
-    note.value.id = route.params.nid as string
-  } else {
-    note.value.categoryId = route.params.tid as string
+  if (vditor.value.getValue().length < 2) return
+  let arr = props.activeKey.split('/')
+  if (props.activeKey.includes('new')){
+    note.value.categoryId = arr[arr.length-2]
+  }else {
+    note.value.id = arr[arr.length-1]
   }
   note.value.content = vditor.value.getValue();
-  note.value.title = vditor.value.getValue().split('\n')[0];
+  let tmplTitle = vditor.value.getValue().split('\n')[0]
+
+  note.value.title = tmplTitle.slice(0, Math.min(tmplTitle.length, 30));
   saveNote(note.value).then(resp=>{
     if (resp.code==200){
-      console.log(route.path)
-      if (route.path.includes('new')){
-        props.onEditTabKey(resp.data,note.value.title)
+      if (props.activeKey.includes('new')){
+        props.onEditTabKey(arr[arr.length-1],resp.data,note.value.title)
         note.value.id = resp.data
       }
       message.success("已保存")
@@ -107,25 +142,19 @@ function onSave(){
   })
 }
 onMounted(() => {
-  if (route.params.nid){
-    loadData(route.params.nid)
-  } else {
-    init('')
-  }
+  loadData()
 })
-onBeforeRouteUpdate((to, from) => {
-  console.log('to',to)
-  console.log('from',from)
-  if (to.params.nid !== from.params.nid) {
-    loadData(to.params.nid);
-  }
-});
 
-async function init(content){
+async function init(){
+  await nextTick()
   vditor.value = new Vditor(vditorRef.value!, {
     height	: '100vh',
     width:'100%',
     mode: 'ir',
+    counter: {
+      enable: true,
+      type: 'text', // 可选：markdown / text
+    },
     toolbarConfig: {
       pin: true,        // 是否固定在顶部
     },
@@ -138,9 +167,13 @@ async function init(content){
       id: 'disable-cache'  // 即使不启用也必须提供
     },
     placeholder: '请输入笔记内容...',
-    value: content
+    value: note.value.content
   })
 }
+defineExpose({
+  loadData,
+  checkSave
+})
 </script>
 
 <style>

@@ -14,52 +14,43 @@ const router = createRouter({
             component: () => import('@/views/MinimalRegister.vue')
         },
         {
-            path: '/',
-            component: () => import('@/views/note/Layout.vue'),
-            redirect: '/list',
-            children: [
-                {
-                    path: 'list',
-                    name: 'List',
-                    component: () => import('@/views/note/NoteList.vue')
-                },
-                {
-                    path: 'note/new/:tid/:tempId',
-                    name: 'NoteNew',
-                    component: () => import('@/components/Editor.vue'),
-                    props:true
-                },
-                {
-                    path: 'note/edit/:tid/:nid',
-                    name: 'NoteEdit',
-                    component: () => import('@/components/Editor.vue'),
-                    props:true
-                },
-            ]
+            path: '/layout',
+            name: 'Layout',
+            component: () => import('@/components/Layout.vue'),
+        },
+        {
+            path: '/public/:shareCode',
+            name: 'ShareEditor',
+            component: () => import('@/views/note/ShareEditor.vue')
         },
         {
             path: '/:pathMatch(.*)*',
-            redirect: '/'
+            redirect: '/layout'
         }
     ]
 })
-// router.beforeEach((to, from, next) => {
-//     const token = localStorage.getItem('token')
-//     console.log(token)
-//     if (!token && to.path !== '/login' && to.path !== '/register') {
-//         next('/login')
-//         return
-//     }
-//
-//     if (token && (to.path === '/login' || to.path === '/register')) {
-//         next('/')
-//         return
-//     }
-//     if (from.name === undefined && to.path !== '/list') {
-//         next('/list')
-//     }
-//     next()
-// })
+const whiteArr = ['/login','/register']
+router.beforeEach((to, from, next) => {
+
+    console.log(to.path)
+    const token = localStorage.getItem('token')
+    if (to.path.startsWith('/public')){
+        next()
+        return;
+    }
+    if (!token && !whiteArr.includes(to.path)) {
+        next('/login')
+        return
+
+    }
+    if (token && (to.path === '/login' || to.path === '/register')) {
+        next('/')
+        return
+    }
+    console.log('2')
+
+    next()
+})
 
 
 export default router

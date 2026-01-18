@@ -11,7 +11,7 @@
         <a-card style="height: 100%;border-radius: 0;">
           <template #title>
             <div class="card-title">
-              <EditOutlined class="title-icon" />
+              <img src="@/assets/vue.svg" class="title-icon" />
               <span>肄宁在线笔记</span>
             </div>
           </template>
@@ -39,15 +39,21 @@
               :closable="tab.closable"
           >
             <a-layout-content style="padding: 0; position: relative">
-              <router-view v-slot="{ Component }">
-                <component
+                <NoteList
+                    v-if="tab.key === '/list'"
                     :key="tab.key"
-                    :is="Component"
                     :cid="cid"
                     :onEditTab="handleEditTabFromList"
-                    :onEditTabKey="handleEditTabFromEditor"
+                    :ref="setEditorRef(tab.key)"
                 />
-              </router-view>
+              <Editor
+                  v-else
+                  :key="tab.key"
+                  :activeKey="activeKey"
+                  :onEditTab="handleEditTabFromList"
+                  :onEditTabKey="handleEditTabFromEditor"
+                  :ref="setEditorRef(tab.key)"
+              />
             </a-layout-content>
           </a-tab-pane>
           <!-- 右侧额外内容 -->
@@ -56,6 +62,7 @@
               <template #overlay>
                 <a-menu @click="({ key: menuKey }) => onContextMenuClick(menuKey)">
                   <a-menu-item key="profile">个人资料</a-menu-item>
+                  <a-menu-item key="share">分享管理</a-menu-item>
                   <a-menu-item key="logout">退出登录</a-menu-item>
                 </a-menu>
               </template>
@@ -66,78 +73,128 @@
       </a-layout>
     </a-layout>
   </a-layout>
+  <ShareManage v-model:show="shareShow"/>
+  <Profile v-model:show="profileShow"/>
+
 </template>
 
 
 <script setup lang="ts">
-import { computed,ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { nextTick,ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { EditOutlined} from '@ant-design/icons-vue'
-import NoteTree from '@/components/NoteTree.vue'
+import NoteTree from './NoteTree.vue'
+import Editor from '../views/note/Editor.vue'
+import NoteList from '../views/note/NoteList.vue'
+import ShareManage from '../components/ShareManage.vue'
+import Profile from '../components/Profile.vue'
 
 
 const router = useRouter()
-const route = useRoute()
 //状态管理
 const cid = ref()
-const activeKey = computed(()=> route.fullPath)
+const activeKey = ref('/list')
+const profileShow = ref(false)
+
 const tabs = ref([{key: '/list', title: '笔记列表', closable: false}])
 const user = JSON.parse(localStorage.getItem('user'))
+const shareShow = ref(false)
+const editorRefs = new Map<string, any>()
 
+function setEditorRef(key: string) {
+  return (el: any | null) => {
+    if (el) {
+      editorRefs.set(key, el)
+    } else {
+      editorRefs.delete(key)
+    }
+  }
+}
 
-function handleEditTabFromEditor(nid,title){
-  let path = `/note/new/${cid.value}/${route.params.tempId}`
+function getActiveEditor(key?:string) {
+  return editorRefs.get(key ?? activeKey.value)
+}
+async function handleEditTabFromEditor(tempId,nid,title){
+  let path = `/note/new/${cid.value}/${tempId}`
+  console.log('path',path)
   let tab = tabs.value.find(tab=> tab.key == path)
+  console.log('tab',tab)
   tab.key = `/note/edit/${cid.value}/${nid}`
   tab.title = title
-  route.params.tempId = nid
-  router.replace(tab.key)
+  activeKey.value = tab.key
+  await nextTick()
+  getActiveEditor().loadData(nid)
 }
 function onContextMenuClick(menuKey){
-  console.log(menuKey)
   if (menuKey == 'logout'){
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     router.replace('/login')
+    return
+  }
+  if (menuKey == 'profile'){
+    profileShow.value = true
+  }
+  if (menuKey == 'share'){
+    shareShow.value = true
   }
 }
 async function handleEditTabFromTree(tid){
   cid.value = tid
+  console.log('tid',tid)
+  activeKey.value = '/list'
+  await nextTick()
+  getActiveEditor().loadData(tid)
 }
-function handleEditTabFromList(tid,note){
+async function handleEditTabFromList(tid,note){
   let tabKey = `/note/edit/${tid}/${note.id}`
   let exist = tabs.value.find((tab=> tab.key == tabKey))
   if(exist){
-    router.replace(tabKey)
+    activeKey.value = exist.key
   }else {
     tabs.value.push({key: tabKey, title: note.title, closable: true})
-    router.replace(tabKey)
+    activeKey.value = tabKey
   }
-  console.log('tabs',tabs.value)
+  await nextTick()
+  getActiveEditor().loadData(note.id)
+
 }
-function onTabChange(key){
-  if (key == 'home'){
-    router.replace('/list')
-  }else {
-    router.replace(key)
+async function onTabChange(key){
+  if (key == '/list'){
+    activeKey.value = '/list'
+    getActiveEditor().loadData(cid.value)
+  }
+  if (key.includes('new')){
+    activeKey.value = key
+  }
+  if (key.includes('edit')){
+    activeKey.value = key
+    let arr = key.split('/')
+    await nextTick()
+    getActiveEditor().loadData(arr[arr.length-1])
   }
 }
-function onTabEdit(tabKey,action){
+async function onTabEdit(tabKey,action){
   if (action == 'remove'){
+    await getActiveEditor(tabKey).checkSave()
     const index = tabs.value.findIndex(tab => tab.key === tabKey)
     const isActive = activeKey.value == tabKey
-
     tabs.value.splice(index, 1)
-
+    let tab = tabs.value[index-1]
     if (!isActive) return
-
-    router.replace(tabs.value[index - 1].key)
+    activeKey.value = tab.key
+    if (activeKey.value =='/list'){
+      getActiveEditor().loadData(cid.value)
+    }else {
+      let arr = activeKey.value.split('/')
+      getActiveEditor().loadData(arr[arr.length-1])
+    }
   }
   if (action == 'add'){
     let tempId = Date.now() as string
     let path = `/note/new/${cid.value}/${tempId}`
     tabs.value.push({key: path, title: '笔记', closable: true})
-    router.replace(path)
+    activeKey.value = path
   }
 
 }
@@ -165,7 +222,8 @@ function onTabEdit(tabKey,action){
 }
 
 .title-icon {
-  font-size: 16px;
+  width: 40px;
+  height: 40px;
 }
 .ant-tabs-top > .ant-tabs-nav,
 .ant-tabs-bottom > .ant-tabs-nav {

@@ -10,12 +10,13 @@
       <template #renderItem="{ item }">
         <a-list-item >
           <a-card :title="item.title" :bodyStyle="{ height: '90px', overflow: 'auto',padding:'10px' }"   draggable="true"
-                  @dragstart="(e) => onDragStart(e, item)"
+                  @dragstart="(e) => onDragStart(e, item)" @dragend="onDragEnd(item)"
           >
-            {{item.content}}
+            {{item.summary}}......
             <template #actions>
               <delete-outlined key="delete" style="color: red" @click="onDelete(item.id)"/>
               <edit-outlined key="edit" @click="edit(item)"/>
+              <share-alt-outlined key="share" @click="onCreatLink(item.id)"/>
             </template>
           </a-card>
         </a-list-item>
@@ -23,7 +24,7 @@
     </a-list>
     <div class="pagination-wrapper">
 
-      <a-pagination @change="loadData" v-model:current="queryParams.current" :total="notes.total" />
+      <a-pagination @change="loadData(queryParams.categoryId)" v-model:current="queryParams.current" :total="notes.total" />
     </div>
     <div class="floating-actions">
       <a-tooltip title="搜索">
@@ -52,15 +53,16 @@
 </template>
 
 <script setup lang="ts">
-import { DeleteOutlined, EditOutlined,SearchOutlined,CloudUploadOutlined } from '@ant-design/icons-vue';
-import { ref, watch} from 'vue'
+import { DeleteOutlined, EditOutlined,SearchOutlined,CloudUploadOutlined,ShareAltOutlined } from '@ant-design/icons-vue';
+import { ref, onMounted,defineExpose} from 'vue'
 import {getNotes,deleteNote} from '../../api/note'
 import { Modal,message } from 'ant-design-vue'
 import FileUpload from '../../components/FileUpload.vue'
 import Search from '../../components/Search.vue'
+import {getLink} from "../../api/shareNote";
 
 const props = defineProps<{
-  cid: string,
+  cid:string,
   onEditTab: (...any) => void
 }>()
 export interface Note {
@@ -71,6 +73,7 @@ export interface Note {
 }
 const uploadShow = ref(false)
 const searchShow = ref(false)
+
 
 const queryParams = ref({
   current:1,
@@ -84,14 +87,34 @@ function onDragStart(e: DragEvent, note) {
       JSON.stringify({ noteId: note.id })
   )
 }
+function onCreatLink(id){
+  let expireDay = localStorage.getItem('validDays') ?? 36500
+  getLink({
+    noteId:Number.parseInt(id),
+    expireDay:Number.parseInt(expireDay),
+    prefix:'http://localhost:5173/public/',
+  }).then(resp=>{
+    if (resp.code == 200){
+      navigator.clipboard.writeText(resp.data)
+      message.success('链接已复制')
+    } else {
+      message.error(resp.msg)
+    }
+  })
+}
+function onDragEnd(note) {
+  setTimeout(()=>loadData(note.categoryId),200)
+  console.log('noteDr',note)
+}
 function onUpload() {
   uploadShow.value = true
 }
 function onSearch(){
   searchShow.value = true
 }
-function loadData() {
-  queryParams.value.categoryId = props.cid
+
+function loadData(cid) {
+  queryParams.value.categoryId = cid
   getNotes(queryParams.value).then(resp=>{
     if (resp.code == 200){
       notes.value = resp.data
@@ -123,17 +146,9 @@ function onDelete(id) {
     }
   })
 }
-watch(
-    () => props.cid,
-    async (tid) => {
-      if (!tid) {
-        notes.value.records = []
-        return
-      }
-      loadData()
-    },
-    { immediate: true }
-)
+defineExpose({
+  loadData
+})
 </script>
 
 <style>
