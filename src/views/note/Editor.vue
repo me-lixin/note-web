@@ -75,7 +75,7 @@ function onEditorInput() {
     }
     autoSaveTimer = window.setTimeout(() => {
       onSave(true)
-    }, 5000) // 5 秒无输入才保存
+    }, 2000)
 }
 
 function onCreatLink(){
@@ -98,7 +98,7 @@ function onCreatLink(){
 }
 function checkSave(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (note.value.content.length == vditor.value.getValue().length) {
+    if (note.value.content == vditor.value.getValue()) {
       resolve()
       return
     }
@@ -186,7 +186,7 @@ function hideShowToolbar() {
   if (!isHide.value) {
     toolbar.style.display = 'none'
   }else {
-    console.log('isHide.value','flex')
+    toolbar.style.display = 'flex'
   }
 }
 onMounted(() => {
@@ -198,7 +198,7 @@ onMounted(() => {
 async function init(){
   await nextTick()
   vditor.value = new Vditor(vditorRef.value!, {
-    height	: '90vh',
+    height	: window.innerWidth < 450 ? '84vh' : '90vh',
     width:'100%',
     mode: 'ir',
     counter: {

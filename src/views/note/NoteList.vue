@@ -88,6 +88,7 @@ import {copyText} from "../../utils/copyUtil";
 
 const props = defineProps<{
   cid:string,
+  onLoadTree:() => void,
   onEditTab: (...any) => void
 }>()
 export interface Note {
@@ -165,6 +166,7 @@ function onDelete(id) {
       return deleteNote(id).then(resp => {
         if (resp.code === 200) {
           notes.value.records = notes.value.records.filter(n => n.id !== id)
+          props.onLoadTree()
           message.success('删除成功')
         } else {
           message.error(resp.msg)
@@ -173,7 +175,6 @@ function onDelete(id) {
     }
   })
 }
-onMounted(()=>loadData())
 defineExpose({
   loadData
 })

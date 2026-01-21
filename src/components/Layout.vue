@@ -45,6 +45,7 @@
                     v-if="tab.key === '/list'"
                     :key="tab.key"
                     :cid="cid"
+                    :onLoadTree="handleLoadTree"
                     :onEditTab="handleEditTabFromList"
                     :ref="setEditorRef(tab.key)"
                 />
@@ -117,7 +118,9 @@ function setEditorRef(key: string) {
     }
   }
 }
-
+function handleLoadTree(){
+  treeRef.value.loadTree()
+}
 function getActiveEditor(key?:string) {
   return editorRefs.get(key ?? activeKey.value)
 }
