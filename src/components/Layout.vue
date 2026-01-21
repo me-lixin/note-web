@@ -1,5 +1,5 @@
 <template>
-  <a-layout style="height: 100vh">
+  <a-layout >
     <a-layout>
       <a-layout-sider
           zeroWidthTriggerStyle="position: absolute; top: 350px; left: 0px; width: 20px;background: black;"
@@ -24,55 +24,57 @@
       </a-layout-sider>
 
       <a-layout style="background: #fff">
-        <a-tabs
-            type="editable-card"
-            size="small"
-            :activeKey="activeKey"
-            :tabBarGutter="0"
-            @change="onTabChange"
-            @edit="onTabEdit"
-            :tabBarStyle="{ background:'#f0f0f0' }"
-        >
-
-          <a-tab-pane
-              v-for="tab in tabs"
-              :key="tab.key"
-              :tab="tab.title"
-              :closable="tab.closable"
+        <div class="tabs-sticky-wrapper">
+          <a-tabs
+              type="editable-card"
+              size="small"
+              :activeKey="activeKey"
+              :tabBarGutter="0"
+              @change="onTabChange"
+              @edit="onTabEdit"
+              :tabBarStyle="{ background:'#f0f0f0',position: 'sticky',top: 0,zIndex: '100' }"
           >
-            <a-layout-content style="padding: 0; position: relative">
-                <NoteList
-                    v-if="tab.key === '/list'"
+            <a-tab-pane
+                v-for="tab in tabs"
+                :key="tab.key"
+                :tab="tab.title"
+                :closable="tab.closable"
+            >
+              <a-layout-content style="padding: 0; position: relative">
+                  <NoteList
+                      v-if="tab.key === '/list'"
+                      :key="tab.key"
+                      :cid="cid"
+                      :onLoadTree="handleLoadTree"
+                      :onEditTab="handleEditTabFromList"
+                      :ref="setEditorRef(tab.key)"
+                  />
+                <Editor
+                    v-else
                     :key="tab.key"
-                    :cid="cid"
-                    :onLoadTree="handleLoadTree"
+                    :activeKey="activeKey"
                     :onEditTab="handleEditTabFromList"
+                    :onEditTabKey="handleEditTabFromEditor"
                     :ref="setEditorRef(tab.key)"
                 />
-              <Editor
-                  v-else
-                  :key="tab.key"
-                  :activeKey="activeKey"
-                  :onEditTab="handleEditTabFromList"
-                  :onEditTabKey="handleEditTabFromEditor"
-                  :ref="setEditorRef(tab.key)"
-              />
-            </a-layout-content>
-          </a-tab-pane>
-          <!-- 右侧额外内容 -->
-          <template #rightExtra>
-            <a-dropdown>
-              <template #overlay>
-                <a-menu @click="({ key: menuKey }) => onContextMenuClick(menuKey)">
-                  <a-menu-item key="profile">个人资料</a-menu-item>
-                  <a-menu-item key="share">分享管理</a-menu-item>
-                  <a-menu-item key="logout">退出登录</a-menu-item>
-                </a-menu>
-              </template>
-              <a-avatar style="color: #f5f5f5; background-color: #8d6e63; margin-right: 15px;">{{user.nickname}}</a-avatar>
-            </a-dropdown>
-          </template>
-        </a-tabs>
+              </a-layout-content>
+            </a-tab-pane>
+            <!-- 右侧额外内容 -->
+            <template #rightExtra>
+              <a-dropdown>
+                <template #overlay>
+                  <a-menu @click="({ key: menuKey }) => onContextMenuClick(menuKey)">
+                    <a-menu-item key="profile">个人资料</a-menu-item>
+                    <a-menu-item key="share">分享管理</a-menu-item>
+                    <a-menu-item key="logout">退出登录</a-menu-item>
+                  </a-menu>
+                </template>
+                <a-avatar style="color: #f5f5f5; background-color: #8d6e63; margin-right: 15px;">{{user.nickname}}</a-avatar>
+              </a-dropdown>
+            </template>
+          </a-tabs>
+        </div>
+
       </a-layout>
     </a-layout>
   </a-layout>
@@ -213,6 +215,9 @@ async function onTabEdit(tabKey,action){
 </script>
 
 <style>
+.tabs-sticky-wrapper {
+
+}
 .ant-layout-sider-zero-width-trigger .anticon {
   display: none;
 }

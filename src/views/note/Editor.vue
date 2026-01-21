@@ -62,7 +62,6 @@ const searchShow = ref(false)
 const note = ref({
   categoryId:'',
   title:'',
-  summary:'',
   id:'',
   content:' '
 })
@@ -125,7 +124,7 @@ function edit(item){
   props.onEditTab(item.categoryId,item)
 }
 // 异步加载笔记内容
-function onSave(show?){
+function onSave(){
   if (vditor.value.getValue() == note.value.content) return
   let arr = props.activeKey.split('/')
   if (props.activeKey.includes('new')){
@@ -133,12 +132,9 @@ function onSave(show?){
   }else {
     note.value.id = arr[arr.length-1]
   }
-  note.value.content = vditor.value.getValue();
-  let tmplTitle = vditor.value.getValue().split('\n')[0]
 
-  note.value.title = stripMarkdown(tmplTitle.slice(0, Math.min(tmplTitle.length, 30)));
-  let tmplSummary = vditor.value.getValue().slice(0, 150).replace('tmplTitle','')
-  note.value.summary = stripMarkdown(tmplSummary);
+  note.value.title = stripMarkdown(vditor.value.getValue().slice(0, Math.min(vditor.value.getValue().indexOf('\n'), 30)));
+  note.value.content = vditor.value.getValue();
   saveNote(note.value).then(resp=>{
     if (resp.code==200){
       if (props.activeKey.includes('new')){
@@ -152,18 +148,7 @@ function onSave(show?){
   })
 }
 function stripMarkdown(str: string) {
-  return str
-      .replace(/(\*\*|__)(.*?)\1/g, '$2')    // 粗体
-      .replace(/(\*|_)(.*?)\1/g, '$2')       // 斜体
-      .replace(/~~(.*?)~~/g, '$1')           // 删除线
-      .replace(/`(.*?)`/g, '$1')             // 行内代码
-      .replace(/!\[.*?\]\(.*?\)/g, '')       // 图片
-      .replace(/\[(.*?)\]\(.*?\)/g, '$1')    // 链接文字
-      .replace(/#+\s*(.*)/g, '$1')           // 标题
-      .replace(/^\s*[-*+]\s+/gm, '')         // 列表
-      .replace(/>\s+(.*)/g, '$1')            // 块引用
-      .replace(/```[\s\S]*?```/g, '')        // 代码块
-      .replace(/\n{2,}/g, '\n');             // 多行换行归一
+  return str.replace("[^a-zA-Z0-9\\u4e00-\\u9fa5,，\\.。]", "");
 }
 async function loadData(noteId?){
   if (noteId){
@@ -198,7 +183,7 @@ onMounted(() => {
 async function init(){
   await nextTick()
   vditor.value = new Vditor(vditorRef.value!, {
-    height	: window.innerWidth < 450 ? '84vh' : '90vh',
+    height	: '90vh',
     width:'100%',
     mode: 'ir',
     lang: 'zh_CN',

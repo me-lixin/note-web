@@ -36,7 +36,8 @@
       <!-- 使用 renderItem 插槽 -->
       <template #renderItem="{ item }">
         <a-list-item >
-          <a-card :title="item.title" :bodyStyle="{ height: '160px', overflow: 'auto',padding:'10px' }"
+          <a-card class="inline-card"
+              :title="item.title" :bodyStyle="{ height: '160px',width:'100%',overflow: 'auto',padding:'10px' }"
                   draggable="true"
                   @dragstart="(e) => onDragStart(e, item)" @dragend="onDragEnd(item)"
           >
@@ -74,7 +75,7 @@
         </a-button>
       </a-tooltip>
     </div>
-    <FileUpload v-model:show="uploadShow" :cid="props.cid"/>
+    <FileUpload v-model:show="uploadShow" :cid="props.cid" :reloadList="loadData" />
     <Search v-model:show="searchShow" :onEditTab="edit"/>
 
   </div>
@@ -188,6 +189,12 @@ defineExpose({
 </script>
 
 <style>
+.inline-card {
+  display: inline-block;
+  width: 90vw;              /* 必须给宽度，否则永远会被撑开 */
+  word-break: break-all;     /* 强制断行 */
+  overflow-wrap: anywhere;
+}
 .single-line-ellipsis {
   display: inline-block;
   white-space: nowrap;       /* 不换行 */

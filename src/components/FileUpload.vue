@@ -41,6 +41,7 @@ import {fileImport} from '../api/note'
 const props = defineProps({
   show: Boolean,
   cid: String,
+  reloadList: Function,
 })
 interface UploadFile {
   file: File
@@ -106,6 +107,7 @@ function uploadFile(f: UploadFile) {
         if (resp.code === 200) {
           f.progress = 100
           f.status = 'success'
+          props.reloadList(props.cid)
         } else {
           f.status = 'error'
           message.error(resp.msg)

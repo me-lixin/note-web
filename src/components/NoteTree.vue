@@ -34,15 +34,15 @@
           >
               {{dataRef.name}}
             <a-tooltip title="该目录下的笔记数量">
-              <span v-if="dataRef.count<100" class="count">{{dataRef.count ?? 0}}</span>
-              <span v-else class="count count-max">99+</span>
+              <span v-if="dataRef.count > 100" class="count count-max">99+</span>
+              <span v-else class="count">{{dataRef.count ?? 0}}</span>
             </a-tooltip>
           </span>
 
           <template #overlay>
-            <a-menu v-if="dataRef.level<3" @click="({ key: menuKey }) => onContextMenuClick(dataRef.id, menuKey)">
-              <a-menu-item key="addDir">新增目录</a-menu-item>
-              <a-menu-item key="rename">重命名</a-menu-item>
+            <a-menu @click="({ key: menuKey }) => onContextMenuClick(dataRef.id, menuKey)">
+              <a-menu-item v-if="dataRef.level<3" key="addDir">新增目录</a-menu-item>
+              <a-menu-item v-if="dataRef.level<3" key="rename">重命名</a-menu-item>
               <a-menu-item key="delete">删除</a-menu-item>
             </a-menu>
           </template>
@@ -170,7 +170,7 @@ const handleSelect = (keys,info) => {
   console.log(expandedKeys.value)
 }
 
-const onContextMenuClick = (e,treeKey, menuKey) => {
+const onContextMenuClick = (treeKey, menuKey) => {
   const node = findNodeByKey(treeData.value, treeKey)
   if (!node) return
   switch (menuKey) {
