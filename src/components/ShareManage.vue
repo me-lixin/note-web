@@ -2,7 +2,7 @@
   <a-modal
       title="分享管理"
       v-model:open="modalOpen"
-      width="50vw"
+      width="1000px"
       @cancel="handleClose"
       :footer="null"
       destroyOnClose
@@ -42,17 +42,20 @@
         <!-- 分享链接列 -->
         <template v-if="column.key === 'url'">
           <a-tooltip :title="record.url">
-            <span style="display:inline-block; max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <span style="display:inline-block; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               {{ record.url }}
             </span>
           </a-tooltip>
         </template>
         <template v-if="column.key === 'titleSnapshot'">
           <a-tooltip :title="record.titleSnapshot">
-            <span style="display:inline-block; max-width: 100px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <span style="display:inline-block; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
               {{ record.titleSnapshot }}
             </span>
           </a-tooltip>
+        </template>
+        <template v-if="column.key === 'createTime'">
+            {{ record.createTime.replace('T',' ')}}
         </template>
         <template v-if="column.key === 'expired'">
           <a-tag :color="new Date(record.expireTime) < new Date() ? 'red' : 'green'">
@@ -83,6 +86,7 @@
 import { ref, reactive,computed,watch,onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import {getSharePage,deleteShare} from '../api/shareNote'
+import {copyText} from "../utils/copyUtil";
 
 const props = defineProps<{
   show: boolean
@@ -145,8 +149,9 @@ async function loadTable() {
 
 /** 复制链接 */
 function copyLink(url: string) {
-  navigator.clipboard.writeText(url)
-  message.success('链接已复制')
+  copyText(url)
+      .then(() => message.success('复制成功'))
+      .catch(() => message.error('复制失败'))
 }
 
 /** 删除 */
@@ -159,9 +164,6 @@ function handleDelete(id: number) {
   })
 }
 
-onMounted( () => {
-  loadTable()
-})
 watch(modalOpen, (newVal) => {
   if (newVal) {
     loadTable()

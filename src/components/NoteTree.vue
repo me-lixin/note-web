@@ -49,13 +49,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted,nextTick } from 'vue'
+import {ref, onMounted, nextTick, defineExpose} from 'vue'
 import {getTree,updateCategory,deleteCategory} from '../api/noteCategory'
 import {moveNote} from '../api/note'
 import { message } from 'ant-design-vue'
 
 const props = defineProps<{
-  onEditTab: (any) => void
+  onEditTab: (any,string) => void
 }>()
 
 // 树数据
@@ -65,6 +65,7 @@ const expandedKeys = ref<string[]>([])
 const selectedKeys = ref<string[]>([])
 const customExpanded = ref<Set<string>>(new Set())
 const inputRef = ref()
+const rootId = ref()
 
 function onDragStart(e: DragEvent) {
   console.log(e.node.id)
@@ -146,13 +147,16 @@ function focusInput() {
 }
 
 // 点击节点跳转
-const handleSelect = (keys) => {
+const handleSelect = (keys,info) => {
   if (keys.length ) {
     selectedKeys.value = keys
-    props.onEditTab(keys[0])
+    props.onEditTab(keys[0], info.name ?? info.node.name)
   }
   if (keys.length == 0 && customExpanded.value.size > 1){
-    customExpanded.value.delete(selectedKeys.value.pop())
+    let nodeId = selectedKeys.value.pop();
+    if (rootId.value != nodeId){
+      customExpanded.value.delete(nodeId)
+    }
   } else if(keys.length > 0){
     customExpanded.value.add(keys[0])
   }
@@ -160,8 +164,6 @@ const handleSelect = (keys) => {
   if (expandedKeys.value.length == 0){
     selectedKeys.value = []
   }
-  console.log(keys)
-  console.log(customExpanded.value)
   console.log(expandedKeys.value)
 }
 
@@ -235,6 +237,10 @@ function renameDir(id: string) {
 }
 
 function deleteDir(node: any) {
+  if (node.level==1){
+    message.warn("无法删除根目录!")
+    return
+  }
     removeNode(node.id)
 }
 
@@ -255,7 +261,13 @@ function loadTree(){
   getTree().then(resp=>{
     if (resp.code == 200){
       treeData.value = resp.data
-      handleSelect(['1'])
+      if (rootId.value){
+        return
+      }
+      expandedKeys.value=[treeData.value[0].id]
+      customExpanded.value.add(treeData.value[0].id)
+      handleSelect([treeData.value[0].id],treeData.value[0])
+      rootId.value = treeData.value[0].id
     } else {
       message.error(resp.msg)
     }
@@ -276,6 +288,8 @@ function removeNode(id){
   deleteCategory(id).then(resp=>{
     if (resp.code == 500){
       message.error(resp.msg)
+    }else {
+      message.success('删除成功!')
     }
     loadTree()
   })
@@ -284,22 +298,30 @@ function removeNode(id){
 onMounted( () => {
   loadTree()
 })
+defineExpose({
+  loadTree
+})
 </script>
 <style>
 .count{
   position: absolute;
   display: inline-block;
-  width: 20px;
-  top: 2px;
+  width: 15px;
+  top: 4px;
   text-align: center;
   background: #f0f0f0;
-  left: -20px;
-  line-height: 20px;
+  left: -24px;
+  line-height: 15px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 9px;
   color: rgba(0, 0, 0, 0.88);
 }
 .count-max{
   font-size: 7px;
+}
+.ant-tree-switcher,
+.ant-tree-switcher_open,
+.ant-tree-switcher-noop {
+  left: 10px; /* 或 padding-left，根据布局调整 */
 }
 </style>

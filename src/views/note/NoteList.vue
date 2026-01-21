@@ -1,15 +1,39 @@
 <template>
   <div>
-    <a-list :grid="{ column: 3}"
+    <a-list
+        v-if="!isMobile"
         :data-source="notes.records"
-        style="height: 645px"
+        style="height: 550px;overflow: auto;border-radius:0px"
         bordered
         :locale="{emptyText:'还没有笔记,快点击➕添加你的笔记吧!'}"
     >
       <!-- 使用 renderItem 插槽 -->
+      <template #renderItem="{ item,index }">
+        <a-list-item @click="edit(item)" :class="index % 2 == 0 ? 'list-item-even' : 'list-item-odd'">
+            <span class="single-line-ellipsis">{{item.title}}</span>
+
+            <template #actions>
+              <div style="margin-right: 30px">
+                <span style="font-size: 10px;font-family: monospace;">{{item.updateTime.replace('T', ' ')}}更新</span>
+                <span style="font-size: 10px;font-family: monospace;margin-left: 80px">{{item.createTime.replace('T', ' ')}}创建</span>
+
+                <share-alt-outlined key="share" style="margin-left: 100px" @click.stop="onCreatLink(item.id)"/>
+                <delete-outlined key="delete" style="color: red;margin-left: 20px" @click.stop="onDelete(item.id)"/>
+              </div>
+            </template>
+        </a-list-item>
+      </template>
+    </a-list>
+
+    <a-list v-if="isMobile" :grid="{ column: 1}"
+            :data-source="notes.records"
+            bordered
+            :locale="{emptyText:'还没有笔记,快点击➕添加你的笔记吧!'}"
+    >
+      <!-- 使用 renderItem 插槽 -->
       <template #renderItem="{ item }">
         <a-list-item >
-          <a-card :title="item.title" :bodyStyle="{ height: '90px', overflow: 'auto',padding:'10px' }"   draggable="true"
+          <a-card :title="item.title" :bodyStyle="{ height: '160px', overflow: 'auto',padding:'10px' }"   draggable="true"
                   @dragstart="(e) => onDragStart(e, item)" @dragend="onDragEnd(item)"
           >
             {{item.summary}}......
@@ -22,8 +46,8 @@
         </a-list-item>
       </template>
     </a-list>
-    <div class="pagination-wrapper">
 
+    <div class="pagination-wrapper">
       <a-pagination @change="loadData(queryParams.categoryId)" v-model:current="queryParams.current" :total="notes.total" />
     </div>
     <div class="floating-actions">
@@ -54,12 +78,13 @@
 
 <script setup lang="ts">
 import { DeleteOutlined, EditOutlined,SearchOutlined,CloudUploadOutlined,ShareAltOutlined } from '@ant-design/icons-vue';
-import { ref, onMounted,defineExpose} from 'vue'
+import { ref,defineExpose,onMounted} from 'vue'
 import {getNotes,deleteNote} from '../../api/note'
 import { Modal,message } from 'ant-design-vue'
 import FileUpload from '../../components/FileUpload.vue'
 import Search from '../../components/Search.vue'
 import {getLink} from "../../api/shareNote";
+import {copyText} from "../../utils/copyUtil";
 
 const props = defineProps<{
   cid:string,
@@ -73,11 +98,12 @@ export interface Note {
 }
 const uploadShow = ref(false)
 const searchShow = ref(false)
-
+const apiBaseUrl = import.meta.env.VITE_WEB_SERVICE_IP
+const isMobile = ref(window.innerWidth < 450)
 
 const queryParams = ref({
   current:1,
-  size:9,
+  size:11,
   categoryId:null
 })
 const notes = ref<{ records: Note[] }>({ records: [] })
@@ -92,11 +118,12 @@ function onCreatLink(id){
   getLink({
     noteId:Number.parseInt(id),
     expireDay:Number.parseInt(expireDay),
-    prefix:'http://localhost:5173/public/',
+    prefix: apiBaseUrl,
   }).then(resp=>{
     if (resp.code == 200){
-      navigator.clipboard.writeText(resp.data)
-      message.success('链接已复制')
+      copyText(resp.data)
+          .then(() => message.success('复制成功'))
+          .catch(() => message.error('复制失败'))
     } else {
       message.error(resp.msg)
     }
@@ -113,7 +140,7 @@ function onSearch(){
   searchShow.value = true
 }
 
-function loadData(cid) {
+function loadData(cid?) {
   queryParams.value.categoryId = cid
   getNotes(queryParams.value).then(resp=>{
     if (resp.code == 200){
@@ -146,12 +173,19 @@ function onDelete(id) {
     }
   })
 }
+onMounted(()=>loadData())
 defineExpose({
   loadData
 })
 </script>
 
 <style>
+.single-line-ellipsis {
+  display: inline-block;
+  white-space: nowrap;       /* 不换行 */
+  overflow: hidden;          /* 超出隐藏 */
+  text-overflow: ellipsis;   /* 显示省略号 */
+}
 .ant-list-bordered {
   margin-top: 20px;
   border: none !important;
@@ -182,4 +216,20 @@ defineExpose({
 .floating-actions .ant-btn {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+:deep(.note-item.zebra) {
+  background-color: #fafafa;
+}
+
+:deep(.note-item:hover) {
+  background-color: #e6f4ff;
+}
+.list-item-even {
+  background-color: rgba(0, 0, 0, 0.04); /* 浅灰色 */
+}
+
+.list-item-odd {
+  background-color: #ffffff; /* 白色 */
+}
+
+
 </style>

@@ -6,22 +6,25 @@ const router = createRouter({
         {
             path: '/login',
             name: 'Login',
-            component: () => import('@/views/MinimalLogin.vue')
+            component: () => import('@/views/MinimalLogin.vue'),
+            meta: { public: true } // 公共路由
         },
         {
             path: '/register',
             name: 'Register',
-            component: () => import('@/views/MinimalRegister.vue')
+            component: () => import('@/views/MinimalRegister.vue'),
+            meta: { public: true }
         },
         {
             path: '/layout',
             name: 'Layout',
-            component: () => import('@/components/Layout.vue'),
+            component: () => import('@/components/Layout.vue')
         },
         {
             path: '/public/:shareCode',
             name: 'ShareEditor',
-            component: () => import('@/views/note/ShareEditor.vue')
+            component: () => import('@/views/note/ShareEditor.vue'),
+            meta: { public: true }
         },
         {
             path: '/:pathMatch(.*)*',
@@ -29,28 +32,14 @@ const router = createRouter({
         }
     ]
 })
-const whiteArr = ['/login','/register']
 router.beforeEach((to, from, next) => {
-
-    console.log(to.path)
     const token = localStorage.getItem('token')
-    if (to.path.startsWith('/public')){
-        next()
-        return;
-    }
-    if (!token && !whiteArr.includes(to.path)) {
+    console.log(to.name )
+    if (!token && to.name != 'Login' && to.name != 'Register' && to.name != 'ShareEditor') {
+        console.log('/login' )
         next('/login')
         return
-
     }
-    if (token && (to.path === '/login' || to.path === '/register')) {
-        next('/')
-        return
-    }
-    console.log('2')
-
     next()
 })
-
-
 export default router

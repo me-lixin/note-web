@@ -28,16 +28,13 @@ onMounted(async() => {
   }else {
     isExpire.value = true
   }
-  console.log(isExpire.value)
-  console.log(res)
 })
 
-function init(content) {
+function init(content:string) {
   vditor.value = new Vditor(vditorRef.value!, {
     height: '100vh',
     width: '100%',
     mode: 'ir',
-    readOnly: true,
     toolbar: [],  // 空数组隐藏所有工具栏按钮
     preview: {
       maxWidth: 1400,

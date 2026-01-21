@@ -1,11 +1,9 @@
 import axios from 'axios'
-import {message} from "ant-design-vue";
-
 
 // 创建 axios 实例
 const request = axios.create({
-    baseURL: 'http://localhost:10110', // 你的后端服务地址
-    timeout: 10000
+    baseURL: '/api',
+    timeout: 30000
 })
 
 // 请求拦截器
@@ -22,14 +20,11 @@ request.interceptors.request.use(
 request.interceptors.response.use(
     response => response.data,
     error => {
-        console.log(error)
         if (error.status == 401){
             localStorage.removeItem("token")
             localStorage.removeItem("user")
             window.location.href = '/login'
-            message.error("登陆过期,请重新登陆")
         }else {
-            message.error(error.message)
         }
         return Promise.reject(error)
     }

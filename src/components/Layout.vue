@@ -2,11 +2,13 @@
   <a-layout style="height: 100vh">
     <a-layout>
       <a-layout-sider
-          zeroWidthTriggerStyle="position: absolute; top: 350px; left: 0px; border-radius: 50px;"
+          zeroWidthTriggerStyle="position: absolute; top: 350px; left: 0px; width: 20px;background: black;"
           collapsible
+          :collapsed="isMobile"
           :collapsedWidth="0"
           theme="light"
-          width="220"
+          :width="220"
+          @collapse="handleCollapse"
       >
         <a-card style="height: 100%;border-radius: 0;">
           <template #title>
@@ -15,7 +17,7 @@
               <span>肄宁在线笔记</span>
             </div>
           </template>
-          <NoteTree
+          <NoteTree ref="treeRef"
               :onEditTab="handleEditTabFromTree"
           />
         </a-card>
@@ -80,7 +82,7 @@
 
 
 <script setup lang="ts">
-import { nextTick,ref } from 'vue'
+import {nextTick, ref, onMounted, onUnmounted, watch, computed} from 'vue'
 import { useRouter } from 'vue-router'
 import { EditOutlined} from '@ant-design/icons-vue'
 import NoteTree from './NoteTree.vue'
@@ -89,18 +91,23 @@ import NoteList from '../views/note/NoteList.vue'
 import ShareManage from '../components/ShareManage.vue'
 import Profile from '../components/Profile.vue'
 
-
 const router = useRouter()
 //状态管理
 const cid = ref()
 const activeKey = ref('/list')
 const profileShow = ref(false)
+const treeRef = ref()
 
 const tabs = ref([{key: '/list', title: '笔记列表', closable: false}])
 const user = JSON.parse(localStorage.getItem('user'))
 const shareShow = ref(false)
 const editorRefs = new Map<string, any>()
+//响应式管理
+const isMobile = ref(window.innerWidth < 450)
 
+function handleCollapse(state){
+  isMobile.value = state
+}
 function setEditorRef(key: string) {
   return (el: any | null) => {
     if (el) {
@@ -121,6 +128,7 @@ async function handleEditTabFromEditor(tempId,nid,title){
   console.log('tab',tab)
   tab.key = `/note/edit/${cid.value}/${nid}`
   tab.title = title
+  treeRef.value.loadTree()
   activeKey.value = tab.key
   await nextTick()
   getActiveEditor().loadData(nid)
@@ -139,10 +147,11 @@ function onContextMenuClick(menuKey){
     shareShow.value = true
   }
 }
-async function handleEditTabFromTree(tid){
+async function handleEditTabFromTree(tid,name){
   cid.value = tid
-  console.log('tid',tid)
   activeKey.value = '/list'
+  const tab = tabs.value.find(tab=>tab.key == '/list');
+  tab.title = name
   await nextTick()
   getActiveEditor().loadData(tid)
 }
@@ -201,11 +210,31 @@ async function onTabEdit(tabKey,action){
 </script>
 
 <style>
-#components-layout-demo-fixed-sider .logo {
-  height: 32px;
-  background: rgba(255, 255, 255, 0.2);
-  margin: 16px;
+.ant-layout-sider-zero-width-trigger .anticon {
+  display: none;
 }
+.ant-layout-sider-zero-width-trigger::before {
+  content: "≡";           /* 你可以换成 ☰  >  <  ▶  ◀ */
+  font-size: 16px;
+  line-height: 32px;
+  color: #666;
+  display: block;
+  text-align: center;
+  transition: all 0.3s;
+}
+/* 收起状态 */
+.ant-layout-sider-zero-width-trigger::before {
+  content: "▶";
+  color: white;
+}
+
+/* 展开后（父级 sider 展开时） */
+.ant-layout-sider:not(.ant-layout-sider-collapsed)
+.ant-layout-sider-zero-width-trigger::before {
+  content: "◀";
+  color: white;
+}
+
 .site-layout .site-layout-background {
   background: #fff;
 }
@@ -224,10 +253,12 @@ async function onTabEdit(tabKey,action){
 .title-icon {
   width: 40px;
   height: 40px;
+  margin-top: -15px;
 }
 .ant-tabs-top > .ant-tabs-nav,
 .ant-tabs-bottom > .ant-tabs-nav {
-  margin-bottom: 0 !important;
+  margin-bottom: 10px !important;
+  height: 40px;
 }
 .editor-wrapper {
   position: relative;
@@ -240,7 +271,8 @@ async function onTabEdit(tabKey,action){
   border-radius: 0 !important;
   border-left: none;
   max-width: 140px;
-  border-bottom: none !important;}
+  border-bottom: none !important;
+}
 /* 去掉 + 按钮边框 */
 .ant-tabs-nav-add {
   border: none !important;

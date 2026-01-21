@@ -10,11 +10,11 @@
 
       <a-form :model="form" layout="vertical" @finish="onSubmit">
         <a-form-item name="username" :rules="[{ required: true, message: '请输入用户名' }]">
-          <a-input v-model:value="form.username" placeholder="用户名" size="large" />
+          <a-input v-model:value="form.username" placeholder="用户名" size="large" :maxlength="12"/>
         </a-form-item>
 
         <a-form-item name="password" :rules="[{ required: true, message: '请输入密码' }]">
-          <a-input-password v-model:value="form.password" placeholder="密码" size="large" />
+          <a-input-password v-model:value="form.password" placeholder="密码" size="large" :maxlength="16"/>
         </a-form-item>
 
         <a-button type="primary" html-type="submit" size="large" block>
@@ -48,8 +48,9 @@ function onSubmit() {
       localStorage.setItem('user', JSON.stringify(resp.data))
 
       message.success('登录成功')
-      router.replace('/layout')
-      window.location.reload()
+      // window.location.reload()
+      // router.replace('/layout')
+      window.location.href = '/layout'
     } else {
       message.error(resp.msg)
     }

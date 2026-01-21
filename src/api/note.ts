@@ -24,37 +24,37 @@ export interface PageResult<T> {
 
 // 获取笔记列表（分页）
 export const getNotes = (params: any) =>
-    request.get<ApiResult<PageResult<Note>>>('/api/note/list', {
+    request.get<ApiResult<PageResult<Note>>>('/note/list', {
         params
     })
 
 // 全局搜索
 export const searchNote = (params: any) =>
-    request.get<ApiResult<PageResult<Note>>>('/api/note/search', {
+    request.get<ApiResult<PageResult<Note>>>('/note/search', {
         params
     })
 
 // 获取单条笔记
 export const getNoteById = (id: string) =>
-    request.get<ApiResult<Note>>(`/api/note/${id}`)
+    request.get<ApiResult<Note>>(`/note/${id}`)
 
 // 新增 / 修改笔记
 export const saveNote = (data: Partial<Note>) =>
-    request.put<ApiResult<void>>(`/api/note`, data)
+    request.put<ApiResult<void>>(`/note`, data)
 // 移动笔记目录
 export const moveNote = (data: Partial<Note>) =>
-    request.put<ApiResult<void>>(`/api/note/move`, data)
+    request.put<ApiResult<void>>(`/note/move`, data)
 
 // 删除笔记
 export const deleteNote = (id: string) =>
-    request.delete<ApiResult<void>>(`/api/note/${id}`)
+    request.delete<ApiResult<void>>(`/note/${id}`)
 
 // 上传笔记（带进度）
 export const fileImport = (
     formData: FormData,
     onProgress?: (percent: number) => void
 ) =>
-    request.post<ApiResult<void>>('/api/note/import', formData, {
+    request.post<ApiResult<void>>('/note/import', formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         },

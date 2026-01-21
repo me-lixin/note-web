@@ -1,6 +1,22 @@
 <template>
-  <div ref="vditorRef" style="height: 100%;"></div>
+  <div ref="vditorRef" style="height: 100%;">
+    <a-result title="正在努力加载中......" >
+      <template #icon>
+        <loading-outlined />
+      </template>
+    </a-result>
+  </div>
   <div class="floating-actions">
+    <a-tooltip title="工具栏" placement="left">
+      <a-button
+          shape="circle"
+          type="default"
+          @click="hideShowToolbar"
+      >
+        <ToolOutlined />
+      </a-button>
+    </a-tooltip>
+
     <a-tooltip title="搜索" placement="left">
       <a-button
           shape="circle"
@@ -8,15 +24,6 @@
           @click="onSearch"
       >
         <SearchOutlined />
-      </a-button>
-    </a-tooltip>
-    <a-tooltip title="保存" placement="left">
-      <a-button
-          shape="circle"
-          type="primary"
-          @click="onSave"
-      >
-        <SaveOutlined />
       </a-button>
     </a-tooltip>
     <a-tooltip title="分享" placement="left">
@@ -33,30 +40,44 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref,defineExpose,nextTick  } from 'vue'
+import { onMounted, ref,defineExpose,nextTick ,onBeforeUnmount } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import {saveNote, getNoteById} from '../../api/note'
 import {getLink} from '../../api/shareNote'
-import { SearchOutlined,ShareAltOutlined,SaveOutlined } from '@ant-design/icons-vue'
+import { SearchOutlined,ShareAltOutlined,ToolOutlined,LoadingOutlined } from '@ant-design/icons-vue'
 import {message,Modal} from "ant-design-vue";
 import Search from '../../components/Search.vue'
-
+import {copyText} from '../../utils/copyUtil'
 
 const props = defineProps<{
   onEditTabKey: (...any) => void
   onEditTab: (...any) => void
   activeKey:string
 }>()
+const apiBaseUrl = import.meta.env.VITE_WEB_SERVICE_IP
 const vditorRef = ref<HTMLDivElement | null>(null)
 const vditor = ref<Vditor>()
 const searchShow = ref(false)
 const note = ref({
   categoryId:'',
   title:'',
+  summary:'',
   id:'',
   content:' '
 })
+const isHide = ref(false)
+let autoSaveTimer: number | null = null
+
+function onEditorInput() {
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer)
+    }
+    autoSaveTimer = window.setTimeout(() => {
+      onSave(true)
+    }, 5000) // 5 秒无输入才保存
+}
+
 function onCreatLink(){
   let arr = props.activeKey.split('/')
   let id = arr[arr.length-1]
@@ -64,11 +85,12 @@ function onCreatLink(){
   getLink({
     noteId:Number.parseInt(id),
     expireDay:Number.parseInt(expireDay),
-    prefix:'http://localhost:5173/public/',
+    prefix: apiBaseUrl,
   }).then(resp=>{
     if (resp.code == 200){
-      navigator.clipboard.writeText(resp.data)
-      message.success('链接已复制')
+      copyText(resp.data)
+          .then(() => message.success('复制成功'))
+          .catch(() => message.error('复制失败'))
     } else {
       message.error(resp.msg)
     }
@@ -82,7 +104,9 @@ function checkSave(): Promise<void> {
     }
 
     Modal.confirm({
-      title: '内容未保存，是否保存？',
+      title: '本次编辑内容未保存，是否保存？',
+      okText:"保存",
+      cancelText:"丢弃",
       onOk: async () => {
         await onSave()
         resolve()
@@ -101,24 +125,8 @@ function edit(item){
   props.onEditTab(item.categoryId,item)
 }
 // 异步加载笔记内容
-async function loadData(noteId?){
-  if (noteId){
-    getNoteById(noteId).then(resp=>{
-      if (resp.code==200){
-        note.value = resp.data
-        init()
-
-      }else {
-        message.error(resp.msg)
-      }
-    })
-  } else {
-    init()
-  }
-
-}
-function onSave(){
-  if (vditor.value.getValue().length < 2) return
+function onSave(show?){
+  if (vditor.value.getValue() == note.value.content) return message.success("已保存")
   let arr = props.activeKey.split('/')
   if (props.activeKey.includes('new')){
     note.value.categoryId = arr[arr.length-2]
@@ -128,7 +136,9 @@ function onSave(){
   note.value.content = vditor.value.getValue();
   let tmplTitle = vditor.value.getValue().split('\n')[0]
 
-  note.value.title = tmplTitle.slice(0, Math.min(tmplTitle.length, 30));
+  note.value.title = stripMarkdown(tmplTitle.slice(0, Math.min(tmplTitle.length, 30)));
+  let tmplSummary = vditor.value.getValue().slice(0, 150).replace('tmplTitle','')
+  note.value.summary = stripMarkdown(tmplSummary);
   saveNote(note.value).then(resp=>{
     if (resp.code==200){
       if (props.activeKey.includes('new')){
@@ -141,33 +151,103 @@ function onSave(){
     }
   })
 }
+function stripMarkdown(str: string) {
+  return str
+      .replace(/(\*\*|__)(.*?)\1/g, '$2')    // 粗体
+      .replace(/(\*|_)(.*?)\1/g, '$2')       // 斜体
+      .replace(/~~(.*?)~~/g, '$1')           // 删除线
+      .replace(/`(.*?)`/g, '$1')             // 行内代码
+      .replace(/!\[.*?\]\(.*?\)/g, '')       // 图片
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')    // 链接文字
+      .replace(/#+\s*(.*)/g, '$1')           // 标题
+      .replace(/^\s*[-*+]\s+/gm, '')         // 列表
+      .replace(/>\s+(.*)/g, '$1')            // 块引用
+      .replace(/```[\s\S]*?```/g, '')        // 代码块
+      .replace(/\n{2,}/g, '\n');             // 多行换行归一
+}
+async function loadData(noteId?){
+  if (noteId){
+    getNoteById(noteId).then(resp=>{
+      if (resp.code==200){
+        note.value = resp.data
+        init()
+      }else {
+        message.error(resp.msg)
+      }
+    })
+  } else {
+    init()
+  }
+}
+// 隐藏工具栏
+function hideShowToolbar() {
+  isHide.value = !isHide.value
+  const toolbar = document.querySelector('.vditor-toolbar')
+  if (!isHide.value) {
+    toolbar.style.display = 'none'
+  }else {
+    console.log('isHide.value','flex')
+  }
+}
 onMounted(() => {
-  loadData()
+  if (props.activeKey.includes('new')){
+    loadData()
+  }
 })
 
 async function init(){
   await nextTick()
   vditor.value = new Vditor(vditorRef.value!, {
-    height	: '100vh',
+    height	: '90vh',
     width:'100%',
     mode: 'ir',
     counter: {
       enable: true,
       type: 'text', // 可选：markdown / text
     },
+    toolbar: [
+      { name: 'headings', tipPosition: 's' },
+      { name: 'bold', tipPosition: 's' },
+      { name: 'italic', tipPosition: 's' },
+      { name: 'strike', tipPosition: 's' },
+      { name: 'inline-code', tipPosition: 's' },
+      { name: 'code', tipPosition: 's' },
+      { name: '|', tipPosition: 's' },
+      { name: 'line', tipPosition: 's' },
+      { name: 'quote', tipPosition: 's' },
+      { name: 'list', tipPosition: 's' },
+      { name: 'ordered-list', tipPosition: 's' },
+      { name: 'check', tipPosition: 's' },
+      { name: 'upload', tipPosition: 's' },
+      { name: 'link', tipPosition: 's' },
+      { name: 'table', tipPosition: 's' },
+      { name: '|', tipPosition: 's' },
+      { name: 'fullscreen', tipPosition: 's' },
+      { name: 'outline', tipPosition: 's' },
+      { name: '|', tipPosition: 's' },
+      { name: 'export', tipPosition: 's' }
+    ],
     toolbarConfig: {
       pin: true,        // 是否固定在顶部
     },
     preview:{
       maxWidth:1200,
-      // mode:editor,
     },
     cache: {
       enable: false,
       id: 'disable-cache'  // 即使不启用也必须提供
     },
     placeholder: '请输入笔记内容...',
-    value: note.value.content
+    value: note.value.content,
+    input() {
+      onEditorInput()
+    },
+    after() {
+      const toolbar = document.querySelector('.vditor-toolbar')
+      if (toolbar) {
+        toolbar.style.display = 'none'
+      }
+    }
   })
 }
 defineExpose({
@@ -177,17 +257,24 @@ defineExpose({
 </script>
 
 <style>
+
 .vditor {
   border: none;
   box-shadow: none;
 }
-/* 整个工具栏 */
 .vditor-toolbar {
-  background-color: #fff;  /* 背景色 */
-  min-height: 50px;                /* 高度 */
-  align-items: flex-start;         /* 垂直居中 */
+  padding-bottom: 20px;
+  background-color: #fff;   /* 背景色 */
+  min-height: 50px;         /* 高度 */
+  display: flex;            /* 必须是 flex 布局 */
+  flex-wrap: nowrap;        /* ⭐ 阻止换行 */
+  align-items: center;      /* 垂直居中 */
   border: none !important;
+  margin-bottom: 10px;
+  overflow-x: auto;         /* ⭐ 横向滚动 */
+  scrollbar-width: thin;    /* Firefox 横向滚动条细一点，可选 */
 }
+
 /* 按钮大小和间距 */
 .vditor-toolbar__item {
   width: 36px;                 /* 按钮宽度 */
@@ -198,12 +285,17 @@ defineExpose({
   margin-top: 10px;
   height: 36px;
 }
-
+/* 编辑模式 */
+.vditor-ir,
+.vditor-wysiwyg {
+  padding-bottom: 20px !important;
+}
 
 /* 编辑区内容背景和内边距 */
 .vditor-ir-wrap,
 .vditor-ir .vditor-reset {
   background-color: #fff !important;
+  padding: 0px 35px !important;
 }
 /* 悬浮按钮容器 */
 .floating-actions {
