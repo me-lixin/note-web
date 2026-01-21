@@ -20,7 +20,9 @@
             ref="inputRef"
             @blur="finishEdit(dataRef)"
         />
-        <a-dropdown v-if="!dataRef.editing" :trigger="['contextmenu']" style="position: relative">
+        <a-dropdown v-if="!dataRef.editing"
+                    :trigger="trigger"
+                    style="position: relative">
 
 
           <span style="max-width: 100px; display: block;overflow: auto; min-height: 20px;"
@@ -28,7 +30,9 @@
                 :id="dataRef.id"
                 @dragover.prevent
                 @drop="(e) => onDrop(e, dataRef)"
-          >{{dataRef.name}}
+
+          >
+              {{dataRef.name}}
             <a-tooltip title="该目录下的笔记数量">
               <span v-if="dataRef.count<100" class="count">{{dataRef.count ?? 0}}</span>
               <span v-else class="count count-max">99+</span>
@@ -66,10 +70,9 @@ const selectedKeys = ref<string[]>([])
 const customExpanded = ref<Set<string>>(new Set())
 const inputRef = ref()
 const rootId = ref()
+const trigger = window.innerWidth < 450 ? ['click'] : ['contextmenu']
 
 function onDragStart(e: DragEvent) {
-  console.log(e.node.id)
-  console.log(e)
   e.event.dataTransfer?.setData(
       'application/json',
       JSON.stringify({ cid: e.node.id })
@@ -167,7 +170,7 @@ const handleSelect = (keys,info) => {
   console.log(expandedKeys.value)
 }
 
-const onContextMenuClick = (treeKey, menuKey) => {
+const onContextMenuClick = (e,treeKey, menuKey) => {
   const node = findNodeByKey(treeData.value, treeKey)
   if (!node) return
   switch (menuKey) {

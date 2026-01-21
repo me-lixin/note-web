@@ -9,7 +9,10 @@
     >
       <!-- 使用 renderItem 插槽 -->
       <template #renderItem="{ item,index }">
-        <a-list-item @click="edit(item)" :class="index % 2 == 0 ? 'list-item-even' : 'list-item-odd'">
+        <a-list-item @click="edit(item)" :class="index % 2 == 0 ? 'list-item-even' : 'list-item-odd'"
+                     draggable="true"
+                     @dragstart="(e) => onDragStart(e, item)" @dragend="onDragEnd(item)"
+        >
             <span class="single-line-ellipsis">{{item.title}}</span>
 
             <template #actions>
@@ -33,7 +36,8 @@
       <!-- 使用 renderItem 插槽 -->
       <template #renderItem="{ item }">
         <a-list-item >
-          <a-card :title="item.title" :bodyStyle="{ height: '160px', overflow: 'auto',padding:'10px' }"   draggable="true"
+          <a-card :title="item.title" :bodyStyle="{ height: '160px', overflow: 'auto',padding:'10px' }"
+                  draggable="true"
                   @dragstart="(e) => onDragStart(e, item)" @dragend="onDragEnd(item)"
           >
             {{item.summary}}......
@@ -131,8 +135,11 @@ function onCreatLink(id){
   })
 }
 function onDragEnd(note) {
-  setTimeout(()=>loadData(note.categoryId),200)
-  console.log('noteDr',note)
+  setTimeout(()=>{
+    loadData(note.categoryId)
+    props.onLoadTree()
+  },200)
+
 }
 function onUpload() {
   uploadShow.value = true

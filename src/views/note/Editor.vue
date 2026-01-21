@@ -126,7 +126,7 @@ function edit(item){
 }
 // 异步加载笔记内容
 function onSave(show?){
-  if (vditor.value.getValue() == note.value.content) return message.success("已保存")
+  if (vditor.value.getValue() == note.value.content) return
   let arr = props.activeKey.split('/')
   if (props.activeKey.includes('new')){
     note.value.categoryId = arr[arr.length-2]
@@ -201,6 +201,8 @@ async function init(){
     height	: window.innerWidth < 450 ? '84vh' : '90vh',
     width:'100%',
     mode: 'ir',
+    lang: 'zh_CN',
+    cdn: '',
     counter: {
       enable: true,
       type: 'text', // 可选：markdown / text
