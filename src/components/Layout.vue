@@ -83,7 +83,6 @@
 
 </template>
 
-
 <script setup lang="ts">
 import {nextTick, ref, onMounted, onUnmounted, watch, computed} from 'vue'
 import { useRouter } from 'vue-router'
@@ -215,6 +214,7 @@ async function onTabEdit(tabKey,action){
     activeKey.value = tab.key
     if (activeKey.value =='/list'){
       getActiveEditor().loadData(cid.value)
+      treeRef.value.loadTree()
     }
   }
   if (action == 'add'){
@@ -234,15 +234,7 @@ async function onTabEdit(tabKey,action){
 .ant-layout-sider-zero-width-trigger .anticon {
   display: none;
 }
-.ant-layout-sider-zero-width-trigger::before {
-  content: "≡";           /* 你可以换成 ☰  >  <  ▶  ◀ */
-  font-size: 16px;
-  line-height: 32px;
-  color: #666;
-  display: block;
-  text-align: center;
-  transition: all 0.3s;
-}
+
 /* 收起状态 */
 .ant-layout-sider-zero-width-trigger::before {
   content: "▶";

@@ -114,7 +114,7 @@ function onSearch(){
 function edit(item){
   props.onEditTab(item.categoryId,item)
 }
-function onSave(isReload){
+function onSave(isReload?){
   let arr = props.activeKey.split('/')
   if (props.activeKey.includes('new')){
     note.value.categoryId = arr[arr.length-2]
