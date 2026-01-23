@@ -30,6 +30,7 @@
                 :id="dataRef.id"
                 @dragover.prevent
                 @drop="(e) => onDrop(e, dataRef)"
+                @pointerdown="onDown(dataRef)"
 
           >
               {{dataRef.name}}
@@ -40,10 +41,10 @@
           </span>
 
           <template #overlay>
-            <a-menu @click="({ key: menuKey }) => onContextMenuClick(dataRef.id, menuKey)">
-              <a-menu-item v-if="dataRef.level<3" key="addDir">新增目录</a-menu-item>
-              <a-menu-item v-if="dataRef.level<3" key="rename">重命名</a-menu-item>
-              <a-menu-item key="delete">删除</a-menu-item>
+            <a-menu>
+              <a-menu-item v-if="dataRef.level<3" @click="addDir">新增目录</a-menu-item>
+              <a-menu-item v-if="dataRef.level<3" @click="renameDir">重命名</a-menu-item>
+              <a-menu-item key="delete" @click="deleteDir">删除</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -111,6 +112,15 @@ function onDrop(e: DragEvent, to) {
   }
 }
 
+let longDown = ref(false)
+
+function onDown(key,info) {
+  window.setTimeout(() => {
+    console.log('key',key)
+    console.log('key',info)
+    longDown.value = true
+  }, 600)
+}
 function findAndRemoveNode(tree, key) {
   for (let i = 0; i < tree.length; i++) {
     const node = tree[i]
@@ -167,23 +177,23 @@ const handleSelect = (keys,info) => {
   if (expandedKeys.value.length == 0){
     selectedKeys.value = []
   }
-  console.log(expandedKeys.value)
 }
 
 const onContextMenuClick = (treeKey, menuKey) => {
-  const node = findNodeByKey(treeData.value, treeKey)
-  if (!node) return
-  switch (menuKey) {
-    case 'addDir':
-      addDir(treeKey)
-      break
-    case 'rename':
-      renameDir(treeKey)
-      break
-    case 'delete':
-      deleteDir(node)
-      break
-  }
+  console.log('treeKey',treeKey)
+  // const node = findNodeByKey(treeData.value, treeKey)
+  // if (!node) return
+  // switch (menuKey) {
+  //   case 'addDir':
+  //     addDir(treeKey)
+  //     break
+  //   case 'rename':
+  //     renameDir(treeKey)
+  //     break
+  //   case 'delete':
+  //     deleteDir(node)
+  //     break
+  // }
 }
 // 辅助方法：根据 key 查找节点
 function findNodeByKey(tree: any[], key: any): any | null {
@@ -200,6 +210,8 @@ function findNodeByKey(tree: any[], key: any): any | null {
 }
 
 function addDir(parentId) {
+  console.log('parentId',parentId)
+  return;
   const parent = findNodeByKey(treeData.value, parentId)
   if (!parent) return
 
@@ -284,6 +296,7 @@ function editNode(node){
     }else {
       node.editing = false
       node.isNew = false
+      loadTree()
     }
   })
 }

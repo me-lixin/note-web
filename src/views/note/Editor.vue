@@ -26,6 +26,15 @@
         <SearchOutlined />
       </a-button>
     </a-tooltip>
+    <a-tooltip title="保存" placement="left">
+      <a-button
+          shape="circle"
+          type="primary"
+          @click="onSave(true)"
+      >
+        <SaveOutlined />
+      </a-button>
+    </a-tooltip>
     <a-tooltip title="分享" placement="left">
       <a-button
           shape="circle"
@@ -40,12 +49,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref,defineExpose,nextTick ,onBeforeUnmount } from 'vue'
+import { onMounted, ref,defineExpose,nextTick } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import {saveNote, getNoteById} from '../../api/note'
 import {getLink} from '../../api/shareNote'
-import { SearchOutlined,ShareAltOutlined,ToolOutlined,LoadingOutlined } from '@ant-design/icons-vue'
+import { SearchOutlined,ShareAltOutlined,ToolOutlined,LoadingOutlined,SaveOutlined } from '@ant-design/icons-vue'
 import {message,Modal} from "ant-design-vue";
 import Search from '../../components/Search.vue'
 import {copyText} from '../../utils/copyUtil'
@@ -63,19 +72,9 @@ const note = ref({
   categoryId:'',
   title:'',
   id:'',
-  content:' '
+  content:'\n'
 })
 const isHide = ref(false)
-let autoSaveTimer: number | null = null
-
-function onEditorInput() {
-    if (autoSaveTimer) {
-      clearTimeout(autoSaveTimer)
-    }
-    autoSaveTimer = window.setTimeout(() => {
-      onSave(true)
-    }, 2000)
-}
 
 function onCreatLink(){
   let arr = props.activeKey.split('/')
@@ -95,26 +94,18 @@ function onCreatLink(){
     }
   })
 }
-function checkSave(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (note.value.content == vditor.value.getValue()) {
-      resolve()
-      return
-    }
+function checkSave(): Boolean {
+  console.log('note.value.id',note.value.id)
+  if (!localStorage.getItem(note.value.id)
+      || localStorage.getItem(note.value.id)=='\n'
+      || vditor.value.getValue() == note.value.content
+  ) {
+    localStorage.removeItem(note.value.id)
+  }else {
+    localStorage.removeItem(note.value.id)
+    return true
+  }
 
-    Modal.confirm({
-      title: '本次编辑内容未保存，是否保存？',
-      okText:"保存",
-      cancelText:"丢弃",
-      onOk: async () => {
-        await onSave()
-        resolve()
-      },
-      onCancel: () => {
-        resolve()
-      }
-    })
-  })
 }
 function onSearch(){
   searchShow.value = true
@@ -123,21 +114,19 @@ function onSearch(){
 function edit(item){
   props.onEditTab(item.categoryId,item)
 }
-// 异步加载笔记内容
-function onSave(){
-  if (vditor.value.getValue() == note.value.content) return
+function onSave(isReload){
   let arr = props.activeKey.split('/')
   if (props.activeKey.includes('new')){
     note.value.categoryId = arr[arr.length-2]
+    note.value.id = null
   }else {
     note.value.id = arr[arr.length-1]
   }
-
   note.value.title = stripMarkdown(vditor.value.getValue().slice(0, Math.min(vditor.value.getValue().indexOf('\n'), 30)));
   note.value.content = vditor.value.getValue();
   saveNote(note.value).then(resp=>{
     if (resp.code==200){
-      if (props.activeKey.includes('new')){
+      if (props.activeKey.includes('new') && isReload){
         props.onEditTabKey(arr[arr.length-1],resp.data,note.value.title)
         note.value.id = resp.data
       }
@@ -154,20 +143,22 @@ async function loadData(noteId?){
   if (noteId){
     getNoteById(noteId).then(resp=>{
       if (resp.code==200){
-        note.value = resp.data
-        init()
+        note.value = JSON.parse(JSON.stringify(resp.data))
+        init(noteId)
       }else {
         message.error(resp.msg)
       }
     })
-  } else {
-    init()
+  }else {
+    let arr = props.activeKey.split('/')
+    note.value.id = arr[arr.length-1]
+    init(arr[arr.length-1])
   }
 }
 // 隐藏工具栏
 function hideShowToolbar() {
   isHide.value = !isHide.value
-  const toolbar = document.querySelector('.vditor-toolbar')
+  const toolbar = vditorRef.value.querySelector('.vditor-toolbar')
   if (!isHide.value) {
     toolbar.style.display = 'none'
   }else {
@@ -180,7 +171,7 @@ onMounted(() => {
   }
 })
 
-async function init(){
+async function init(id){
   await nextTick()
   vditor.value = new Vditor(vditorRef.value!, {
     height	: '90vh',
@@ -221,24 +212,23 @@ async function init(){
       maxWidth:1200,
     },
     cache: {
-      enable: false,
-      id: 'disable-cache'  // 即使不启用也必须提供
+      enable: true,
+      id: id  // 即使不启用也必须提供
     },
     placeholder: '请输入笔记内容...',
     value: note.value.content,
-    input() {
-      onEditorInput()
-    },
     after() {
-      const toolbar = document.querySelector('.vditor-toolbar')
+      const toolbar = vditorRef.value.querySelector('.vditor-toolbar')
       if (toolbar) {
         toolbar.style.display = 'none'
       }
     }
   })
 }
+
 defineExpose({
   loadData,
+  onSave,
   checkSave
 })
 </script>

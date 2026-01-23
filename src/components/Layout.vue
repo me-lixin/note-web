@@ -88,6 +88,7 @@
 import {nextTick, ref, onMounted, onUnmounted, watch, computed} from 'vue'
 import { useRouter } from 'vue-router'
 import { EditOutlined} from '@ant-design/icons-vue'
+import {message,Modal} from "ant-design-vue";
 import NoteTree from './NoteTree.vue'
 import Editor from '../views/note/Editor.vue'
 import NoteList from '../views/note/NoteList.vue'
@@ -190,7 +191,22 @@ async function onTabChange(key){
 }
 async function onTabEdit(tabKey,action){
   if (action == 'remove'){
-    await getActiveEditor(tabKey).checkSave()
+    const editor = getActiveEditor(tabKey)
+    if (!editor) return
+    if (editor.checkSave()) {
+      await new Promise<void>((resolve) => {
+        Modal.confirm({
+          title: '本次编辑内容未保存，是否保存？',
+          okText:"保存",
+          cancelText:"丢弃",
+          onOk: async () => {
+            await editor.onSave()
+            resolve()
+          },
+          onCancel: () => resolve()
+        })
+      })
+    }
     const index = tabs.value.findIndex(tab => tab.key === tabKey)
     const isActive = activeKey.value == tabKey
     tabs.value.splice(index, 1)
@@ -199,9 +215,6 @@ async function onTabEdit(tabKey,action){
     activeKey.value = tab.key
     if (activeKey.value =='/list'){
       getActiveEditor().loadData(cid.value)
-    }else {
-      let arr = activeKey.value.split('/')
-      getActiveEditor().loadData(arr[arr.length-1])
     }
   }
   if (action == 'add'){

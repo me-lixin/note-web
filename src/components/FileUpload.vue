@@ -94,6 +94,9 @@ function handleFileList(fileList: FileList | null) {
 
 // 上传文件
 function uploadFile(f: UploadFile) {
+  if (f.status == 'success' || f.status == 'uploading'){
+    return
+  }
   f.status = 'uploading'
   f.progress = 0
   const formData = new FormData()
