@@ -32,7 +32,7 @@
                 @dragover.prevent
                 @drop="(e) => onDrop(e, dataRef)"
                 @contextmenu.prevent="(e) => onRightClick(e, dataRef)"
-                @touchstart="() => onTouchStart"
+                @touchstart="(e) => onTouchStart(e)"
                 @touchend="onTouchEnd(dataRef)"
                 @touchcancel="onTouchCancel"
           >
@@ -97,6 +97,7 @@ function onDrop(e: DragEvent, to) {
         message.error('目录层级将超过3级,迁移失败!')
         return;
       }
+      if (to.id==node.parentId) return;
       const dragKey = node.id
       const dropKey = to.id
       // 1. 深拷贝，避免引用问题
@@ -120,12 +121,12 @@ function onDrop(e: DragEvent, to) {
 }
 /* ========== PC 右键 ========== */
 function onRightClick(e: MouseEvent, node) {
-  e.preventDefault()
   activeMenuId.value = node.id
 }
 
 /* ========== Mobile 长按 ========== */
-function onTouchStart() {
+function onTouchStart(e:TouchEvent) {
+  e.stopPropagation()
   isLongPress = false
   timer = window.setTimeout(() => {
     isLongPress = true

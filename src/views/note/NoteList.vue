@@ -27,33 +27,33 @@
         </a-list-item>
       </template>
     </a-list>
-
-    <a-list v-if="isMobile" :grid="{ column: 1}"
-            :data-source="notes.records"
-            bordered
-            :locale="{emptyText:'还没有笔记,快点击➕添加你的笔记吧!'}"
-    >
-      <!-- 使用 renderItem 插槽 -->
-      <template #renderItem="{ item }">
-        <a-list-item style="text-align: center;">
-          <a-card class="inline-card"
-              :title="item.title" :bodyStyle="{ height: '160px',width:'100%',overflow: 'auto',padding:'10px' }"
-                  draggable="true"
-                  @dragstart="(e) => onDragStart(e, item)" @dragend="onDragEnd(item)"
-          >
-            {{item.summary}}......
-            <template #actions>
-              <delete-outlined key="delete" style="color: red" @click="onDelete(item.id)"/>
-              <edit-outlined key="edit" @click="edit(item)"/>
-              <share-alt-outlined key="share" @click="onCreatLink(item.id)"/>
-            </template>
-          </a-card>
-        </a-list-item>
-      </template>
-    </a-list>
-
+    <div class="note-list-wrapper">
+      <a-list v-if="isMobile" :grid="{ column: 1}"
+              :data-source="notes.records"
+              bordered
+              :locale="{emptyText:'还没有笔记,快点击➕添加你的笔记吧!'}"
+      >
+        <!-- 使用 renderItem 插槽 -->
+        <template #renderItem="{ item }">
+          <a-list-item style="text-align: center;">
+            <a-card class="inline-card"
+                :title="item.title" :bodyStyle="{ height: '160px',width:'100%',overflow: 'auto',padding:'10px' }"
+                    draggable="true"
+                    @dragstart="(e) => onDragStart(e, item)" @dragend="onDragEnd(item)"
+            >
+              {{item.summary}}......
+              <template #actions>
+                <delete-outlined key="delete" style="color: red" @click="onDelete(item.id)"/>
+                <edit-outlined key="edit" @click="edit(item)"/>
+                <share-alt-outlined key="share" @click="onCreatLink(item.id)"/>
+              </template>
+            </a-card>
+          </a-list-item>
+        </template>
+      </a-list>
+    </div>
     <div class="pagination-wrapper">
-      <a-pagination @change="loadData(queryParams.categoryId)" v-model:current="queryParams.current" :total="notes.total" />
+      <a-pagination @change="loadData(queryParams.categoryId)" v-model:current="queryParams.current" :total="notes.total" :responsive="false"/>
     </div>
     <div class="floating-actions">
       <a-tooltip title="搜索">
@@ -149,9 +149,9 @@ function onSearch(){
   searchShow.value = true
 }
 
-function loadData(cid?) {
+async function loadData(cid?) {
   queryParams.value.categoryId = cid
-  getNotes(queryParams.value).then(resp=>{
+  await getNotes(queryParams.value).then(resp=>{
     if (resp.code == 200){
       notes.value = resp.data
     } else {
@@ -189,9 +189,14 @@ defineExpose({
 </script>
 
 <style>
+.note-list-wrapper {
+  height: calc(100vh - 120px); /* 根据你页面结构调整 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* 移动端顺滑滚动 */
+}
 .inline-card {
   display: inline-block;
-  width: 90%;              /* 必须给宽度，否则永远会被撑开 */
+  width: 96%;              /* 必须给宽度，否则永远会被撑开 */
   word-break: break-all;     /* 强制断行 */
   overflow-wrap: anywhere;
 }

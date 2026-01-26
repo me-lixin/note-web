@@ -213,7 +213,7 @@ async function onTabEdit(tabKey,action){
     if (!isActive) return
     activeKey.value = tab.key
     if (activeKey.value =='/list'){
-      getActiveEditor().loadData(cid.value)
+      await getActiveEditor().loadData(cid.value)
       treeRef.value.loadTree()
     }
   }

@@ -174,7 +174,7 @@ onMounted(() => {
 async function init(id){
   await nextTick()
   vditor.value = new Vditor(vditorRef.value!, {
-    height	: '90vh',
+    height	: '100%',
     width:'100%',
     mode: 'ir',
     lang: 'zh_CN',
