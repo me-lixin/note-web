@@ -73,7 +73,7 @@ function toLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f5f7fa, #e4e7eb);
+  background: linear-gradient(18deg, rgba(5, 145, 255, 0.1), #fff)
 }
 
 .card {
