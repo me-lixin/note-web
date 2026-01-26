@@ -21,7 +21,8 @@
             @blur="finishEdit(dataRef)"
         />
         <a-dropdown v-if="!dataRef.editing"
-                    :trigger="trigger"
+                    :open="activeMenuId === dataRef.id"
+                    trigger="contextmenu"
                     style="position: relative">
 
 
@@ -30,8 +31,10 @@
                 :id="dataRef.id"
                 @dragover.prevent
                 @drop="(e) => onDrop(e, dataRef)"
-                @pointerdown="onDown(dataRef)"
-
+                @contextmenu.prevent="(e) => onRightClick(e, dataRef)"
+                @touchstart="() => onTouchStart"
+                @touchend="onTouchEnd(dataRef)"
+                @touchcancel="onTouchCancel"
           >
               {{dataRef.name}}
             <a-tooltip title="该目录下的笔记数量">
@@ -41,10 +44,11 @@
           </span>
 
           <template #overlay>
-            <a-menu>
-              <a-menu-item v-if="dataRef.level<3" @click="addDir">新增目录</a-menu-item>
-              <a-menu-item v-if="dataRef.level<3" @click="renameDir">重命名</a-menu-item>
-              <a-menu-item key="delete" @click="deleteDir">删除</a-menu-item>
+            <a-menu @click="() => closeMenu()">
+              <a-menu-item v-if="dataRef.level<3" @click="addDir(dataRef)">新增目录</a-menu-item>
+              <a-menu-item v-if="dataRef.level<3" @click="renameDir(dataRef)">重命名</a-menu-item>
+              <a-menu-item key="delete" @click="deleteDir(dataRef)">删除</a-menu-item>
+              <a-menu-item key="clean">取消</a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -72,6 +76,9 @@ const customExpanded = ref<Set<string>>(new Set())
 const inputRef = ref()
 const rootId = ref()
 const trigger = window.innerWidth < 450 ? ['click'] : ['contextmenu']
+let timer: number | null = null
+let isLongPress = false
+const activeMenuId = ref<string | null>(null)
 
 function onDragStart(e: DragEvent) {
   e.event.dataTransfer?.setData(
@@ -111,16 +118,43 @@ function onDrop(e: DragEvent, to) {
     moveNote({id:noteId,categoryId:to.id})
   }
 }
+/* ========== PC 右键 ========== */
+function onRightClick(e: MouseEvent, node) {
+  e.preventDefault()
+  activeMenuId.value = node.id
+}
 
-let longDown = ref(false)
-
-function onDown(key,info) {
-  window.setTimeout(() => {
-    console.log('key',key)
-    console.log('key',info)
-    longDown.value = true
+/* ========== Mobile 长按 ========== */
+function onTouchStart() {
+  isLongPress = false
+  timer = window.setTimeout(() => {
+    isLongPress = true
   }, 600)
 }
+
+function onTouchEnd(node) {
+  clearTimer()
+  if (isLongPress){
+    activeMenuId.value = node.id
+  }
+}
+
+function onTouchCancel() {
+  clearTimer()
+}
+
+/* ========== 通用 ========== */
+function closeMenu() {
+  activeMenuId.value = null
+}
+
+function clearTimer() {
+  if (timer) {
+    clearTimeout(timer)
+    timer = null
+  }
+}
+
 function findAndRemoveNode(tree, key) {
   for (let i = 0; i < tree.length; i++) {
     const node = tree[i]
@@ -179,22 +213,6 @@ const handleSelect = (keys,info) => {
   }
 }
 
-const onContextMenuClick = (treeKey, menuKey) => {
-  console.log('treeKey',treeKey)
-  // const node = findNodeByKey(treeData.value, treeKey)
-  // if (!node) return
-  // switch (menuKey) {
-  //   case 'addDir':
-  //     addDir(treeKey)
-  //     break
-  //   case 'rename':
-  //     renameDir(treeKey)
-  //     break
-  //   case 'delete':
-  //     deleteDir(node)
-  //     break
-  // }
-}
 // 辅助方法：根据 key 查找节点
 function findNodeByKey(tree: any[], key: any): any | null {
   for (const node of tree) {
@@ -209,12 +227,7 @@ function findNodeByKey(tree: any[], key: any): any | null {
   return null
 }
 
-function addDir(parentId) {
-  console.log('parentId',parentId)
-  return;
-  const parent = findNodeByKey(treeData.value, parentId)
-  if (!parent) return
-
+function addDir(parent) {
   if (!parent.children) {
     parent.children = []
   }
@@ -230,8 +243,8 @@ function addDir(parentId) {
     isNew: true
   }
 
-  if (!expandedKeys.value.includes(parentId)) {
-    expandedKeys.value.push(parentId)
+  if (!expandedKeys.value.includes(parent.id)) {
+    expandedKeys.value.push(parent.id)
   }
   parent.children.unshift(newNode)
 
@@ -240,8 +253,7 @@ function addDir(parentId) {
   })
 }
 
-function renameDir(id: string) {
-  const node = findNodeByKey(treeData.value, id)
+function renameDir(node) {
   if (!node) return
 
   node.editing = true
