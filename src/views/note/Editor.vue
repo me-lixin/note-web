@@ -240,6 +240,8 @@ defineExpose({
   box-shadow: none;
 }
 .vditor-toolbar {
+  position: sticky;
+  top: 40px;
   padding-bottom: 20px;
   background-color: #fff;   /* 背景色 */
   min-height: 50px;         /* 高度 */
