@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref,defineExpose,nextTick } from 'vue'
+import { onMounted,onBeforeUnmount, ref,defineExpose,nextTick } from 'vue'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import {saveNote, getNoteById} from '../../api/note'
@@ -127,6 +127,7 @@ function onSave(isReload?){
   saveNote(note.value).then(resp=>{
     if (resp.code==200){
       if (props.activeKey.includes('new') && isReload){
+        localStorage.removeItem(arr[arr.length-1])
         props.onEditTabKey(arr[arr.length-1],resp.data,note.value.title)
         note.value.id = resp.data
       }
@@ -165,12 +166,28 @@ function hideShowToolbar() {
     toolbar.style.display = 'flex'
   }
 }
+const handleVisibilityChange = () => {
+  // 核心判断：只有当前 Tab 页显示的那个组件实例，才响应保存逻辑
+  // 这里的 props.activeKey 是父组件传进来的，代表当前选中的 Tab
+  // note.value.id 是当前实例处理的笔记 ID
+
+  const isPageHidden = document.visibilityState === 'hidden';
+
+  // 只有当页面隐藏，且当前组件就是用户正在浏览的那个 Tab 时才保存
+  if (isPageHidden && props.activeKey.includes(note.value.id || 'new')) {
+    console.log(`实例 ${note.value.id} 正在活跃，执行自动保存`);
+    onSave(props.activeKey.includes('new'));
+  }
+}
 onMounted(() => {
+  document.addEventListener('visibilitychange', handleVisibilityChange);
   if (props.activeKey.includes('new')){
     loadData()
   }
 })
-
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+});
 async function init(id){
   await nextTick()
   vditor.value = new Vditor(vditorRef.value!, {
@@ -274,7 +291,7 @@ defineExpose({
 .vditor-ir-wrap,
 .vditor-ir .vditor-reset {
   background-color: #fff !important;
-  padding: 0px 35px !important;
+  padding: 0px 35px 35px 35px !important;
 }
 /* 悬浮按钮容器 */
 .floating-actions {
