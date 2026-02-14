@@ -228,8 +228,10 @@ async function onTabEdit(tabKey,action){
 </script>
 
 <style>
-.tabs-sticky-wrapper {
-
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* ❗ 禁止 body 滚 */
 }
 .ant-layout-sider-zero-width-trigger .anticon {
   display: none;

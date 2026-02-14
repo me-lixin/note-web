@@ -51,10 +51,11 @@
           </a-list-item>
         </template>
       </a-list>
+      <div class="pagination-wrapper">
+        <a-pagination @change="loadData(queryParams.categoryId)" v-model:current="queryParams.current" :total="notes.total" :responsive="false"/>
+      </div>
     </div>
-    <div class="pagination-wrapper">
-      <a-pagination @change="loadData(queryParams.categoryId)" v-model:current="queryParams.current" :total="notes.total" :responsive="false"/>
-    </div>
+
     <div class="floating-actions">
       <a-tooltip title="搜索">
         <a-button

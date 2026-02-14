@@ -351,6 +351,6 @@ defineExpose({
 .ant-tree-switcher,
 .ant-tree-switcher_open,
 .ant-tree-switcher-noop {
-  left: 10px; /* 或 padding-left，根据布局调整 */
+  left: 7px; /* 或 padding-left，根据布局调整 */
 }
 </style>

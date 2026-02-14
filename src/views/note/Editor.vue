@@ -1,10 +1,12 @@
 <template>
-  <div ref="vditorRef" style="height: 100%;">
-    <a-result title="正在努力加载中......" >
-      <template #icon>
-        <loading-outlined />
-      </template>
-    </a-result>
+  <div style="height: 620px;overflow: scroll">
+    <div ref="vditorRef">
+      <a-result title="正在努力加载中......">
+        <template #icon>
+          <loading-outlined />
+        </template>
+      </a-result>
+    </div>
   </div>
   <div class="floating-actions">
     <a-tooltip title="工具栏" placement="left">
@@ -95,12 +97,12 @@ function onCreatLink(){
   })
 }
 function checkSave(): Boolean {
-  console.log('note.value.id',note.value.id)
   if (!localStorage.getItem(note.value.id)
       || localStorage.getItem(note.value.id)=='\n'
       || vditor.value.getValue() == note.value.content
   ) {
     localStorage.removeItem(note.value.id)
+    return false
   }else {
     localStorage.removeItem(note.value.id)
     return true
@@ -177,8 +179,32 @@ async function init(id){
     height	: '100%',
     width:'100%',
     mode: 'ir',
-    lang: 'zh_CN',
-    cdn: '',
+    // lang: 'zh_CN',
+    // cdn: '',
+    paste: {
+      upload: true,
+    },
+    upload: {
+      url: '/api/note/upload',
+      fieldName: 'file',
+      max: 10 * 1024 * 1024,
+      multiple: false,
+      accept: 'image/*',
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      },
+      format(files, responseText) {
+        const res = JSON.parse(responseText);
+        const name = files[0].name;
+        const url = res.uplaodRes;
+        const result = JSON.stringify({
+          code: 0,
+          data: res.data,
+        });
+        console.log('result',result)
+        return result;
+      },
+    },
     counter: {
       enable: true,
       type: 'text', // 可选：markdown / text
@@ -234,14 +260,13 @@ defineExpose({
 </script>
 
 <style>
-
 .vditor {
   border: none;
   box-shadow: none;
 }
 .vditor-toolbar {
   position: sticky;
-  top: 40px;
+  top: 0px;
   padding-bottom: 20px;
   background-color: #fff;   /* 背景色 */
   min-height: 50px;         /* 高度 */
@@ -249,7 +274,6 @@ defineExpose({
   flex-wrap: nowrap;        /* ⭐ 阻止换行 */
   align-items: center;      /* 垂直居中 */
   border: none !important;
-  margin-bottom: 10px;
   overflow-x: auto;         /* ⭐ 横向滚动 */
   scrollbar-width: thin;    /* Firefox 横向滚动条细一点，可选 */
 }

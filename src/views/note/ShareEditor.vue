@@ -1,6 +1,10 @@
 <template>
   <div class="markdown-preview">
-    <a-result v-if="isExpire" status="403" title="403" sub-title="分享已过期">
+    <a-result v-if="isExpire" status="403" title="分享已过期">
+      <template #extra>
+      </template>
+    </a-result>
+    <a-result v-if="htmlContent==''" status="404" title="没有内容">
       <template #extra>
       </template>
     </a-result>
