@@ -21,7 +21,6 @@
             @click.stop
             @mousedown.stop
             @blur="finishEdit(dataRef)"
-            @keydown.enter="finishEdit(dataRef)"
         />
         <a-dropdown v-if="!dataRef.editing"
                     :open="activeMenuId === dataRef.id"
