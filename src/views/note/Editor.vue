@@ -196,8 +196,6 @@ async function init(id){
     height	: '100%',
     width:'100%',
     mode: 'ir',
-    // lang: 'zh_CN',
-    // cdn: '',
     paste: {
       upload: true,
     },

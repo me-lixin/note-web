@@ -18,7 +18,10 @@
             size="small"
             v-model:value="dataRef.name"
             ref="inputRef"
+            @click.stop
+            @mousedown.stop
             @blur="finishEdit(dataRef)"
+            @keydown.enter="finishEdit(dataRef)"
         />
         <a-dropdown v-if="!dataRef.editing"
                     :open="activeMenuId === dataRef.id"
@@ -75,7 +78,6 @@ const selectedKeys = ref<string[]>([])
 const customExpanded = ref<Set<string>>(new Set())
 const inputRef = ref()
 const rootId = ref()
-const trigger = window.innerWidth < 450 ? ['click'] : ['contextmenu']
 let timer: number | null = null
 let isLongPress = false
 const activeMenuId = ref<string | null>(null)
@@ -196,7 +198,9 @@ function focusInput() {
 
 // 点击节点跳转
 const handleSelect = (keys,info) => {
-  if (keys.length ) {
+  console.log('keys',keys)
+  console.log('info',info)
+  if (keys.length) {
     selectedKeys.value = keys
     props.onEditTab(keys[0], info.name ?? info.node.name)
   }
