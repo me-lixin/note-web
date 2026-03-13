@@ -142,6 +142,8 @@ function onSave(isReload?,id?,cid?){
         localStorage.removeItem(arr[arr.length-1])
         props.onEditTabKey(arr[arr.length-1],resp.data,note.value.title)
         note.value.id = resp.data
+      }else if (vditorRef.value!) {
+        loadData(note.value.id)
       }
       message.success("已保存")
     }else {
@@ -179,29 +181,12 @@ function hideShowToolbar() {
     toolbar.style.display = 'flex'
   }
 }
-const handleVisibilityChange = () => {
-  // 核心判断：只有当前 Tab 页显示的那个组件实例，才响应保存逻辑
-  // 这里的 props.activeKey 是父组件传进来的，代表当前选中的 Tab
-  // note.value.id 是当前实例处理的笔记 ID
-
-  const isPageHidden = document.visibilityState === 'hidden';
-
-  if (isPageHidden && props.activeKey.includes(note.value.id || 'new')) {
-    console.log(`实例 ${note.value.id} 正在活跃，执行自动保存`);
-    if (vditor.value.getValue() != note.value.content) {
-      onSave(props.activeKey.includes('new'),note.value.id);
-    }
-  }
-}
 onMounted(() => {
-  document.addEventListener('visibilitychange', handleVisibilityChange);
   if (props.activeKey.includes('new')){
     loadData()
   }
 })
-onBeforeUnmount(() => {
-  document.removeEventListener('visibilitychange', handleVisibilityChange);
-});
+
 async function init(id){
   await nextTick()
   vditor.value = new Vditor(vditorRef.value!, {
@@ -228,7 +213,6 @@ async function init(id){
           code: 0,
           data: res.data,
         });
-        console.log('result',result)
         return result;
       },
     },
@@ -263,6 +247,19 @@ async function init(id){
     },
     preview:{
       maxWidth:1200,
+    },
+    // 监听编辑器失去焦点事件
+    blur(value) {
+      // Vditor 的 blur 回调会直接把当前最新的 Markdown 文本作为参数(value)传给你
+      console.log(`笔记 ${note.value.id} 失去焦点，尝试自动保存`);
+
+      // 判断内容是否有实质性修改，避免没改字也发网络请求
+      if (value !== note.value.content) {
+        // 触发保存逻辑
+        // 注意判断一下当前是不是新建状态
+        const isNew = props.activeKey.includes('new');
+        onSave(isNew, note.value.id);
+      }
     },
     cache: {
       enable: true,
