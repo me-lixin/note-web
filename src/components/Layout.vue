@@ -191,6 +191,7 @@ async function onTabChange(key){
 async function onTabEdit(tabKey,action){
   if (action == 'remove'){
     const editor = getActiveEditor(tabKey)
+    let arr = tabKey.split('/')
     if (!editor) return
     if (editor.checkSave()) {
       await new Promise<void>((resolve) => {
@@ -199,7 +200,7 @@ async function onTabEdit(tabKey,action){
           okText:"保存",
           cancelText:"丢弃",
           onOk: async () => {
-            await editor.onSave()
+            await editor.onSave(tabKey.includes('new'),arr[arr.length-1],arr[arr.length-2])
             resolve()
           },
           onCancel: () => resolve()

@@ -9,6 +9,15 @@
     </div>
   </div>
   <div class="floating-actions">
+    <a-tooltip title="同步" placement="left">
+      <a-button
+          shape="circle"
+          type="default"
+          @click="loadData(note.id)"
+      >
+        <RedoOutlined />
+      </a-button>
+    </a-tooltip>
     <a-tooltip title="工具栏" placement="left">
       <a-button
           shape="circle"
@@ -32,7 +41,7 @@
       <a-button
           shape="circle"
           type="primary"
-          @click="onSave(true)"
+          @click="onSave(activeKey.includes('new'),note.id)"
       >
         <SaveOutlined />
       </a-button>
@@ -56,7 +65,7 @@ import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import {saveNote, getNoteById} from '../../api/note'
 import {getLink} from '../../api/shareNote'
-import { SearchOutlined,ShareAltOutlined,ToolOutlined,LoadingOutlined,SaveOutlined } from '@ant-design/icons-vue'
+import { SearchOutlined,ShareAltOutlined,ToolOutlined,LoadingOutlined,SaveOutlined,RedoOutlined } from '@ant-design/icons-vue'
 import {message,Modal} from "ant-design-vue";
 import Search from '../../components/Search.vue'
 import {copyText} from '../../utils/copyUtil'
@@ -116,19 +125,20 @@ function onSearch(){
 function edit(item){
   props.onEditTab(item.categoryId,item)
 }
-function onSave(isReload?){
+function onSave(isReload?,id?,cid?){
   let arr = props.activeKey.split('/')
-  if (props.activeKey.includes('new')){
-    note.value.categoryId = arr[arr.length-2]
+  console.log('arr',arr)
+  if (isReload){
+    note.value.categoryId = arr[arr.length-2]||cid
     note.value.id = null
   }else {
-    note.value.id = arr[arr.length-1]
+    note.value.id = id
   }
   note.value.title = stripMarkdown(vditor.value.getValue().slice(0, Math.min(vditor.value.getValue().indexOf('\n'), 30)));
   note.value.content = vditor.value.getValue();
   saveNote(note.value).then(resp=>{
     if (resp.code==200){
-      if (props.activeKey.includes('new') && isReload){
+      if (isReload){
         localStorage.removeItem(arr[arr.length-1])
         props.onEditTabKey(arr[arr.length-1],resp.data,note.value.title)
         note.value.id = resp.data
@@ -147,6 +157,7 @@ async function loadData(noteId?){
     getNoteById(noteId).then(resp=>{
       if (resp.code==200){
         note.value = JSON.parse(JSON.stringify(resp.data))
+        localStorage.removeItem(note.value.id)
         init(noteId)
       }else {
         message.error(resp.msg)
@@ -175,10 +186,11 @@ const handleVisibilityChange = () => {
 
   const isPageHidden = document.visibilityState === 'hidden';
 
-  // 只有当页面隐藏，且当前组件就是用户正在浏览的那个 Tab 时才保存
   if (isPageHidden && props.activeKey.includes(note.value.id || 'new')) {
     console.log(`实例 ${note.value.id} 正在活跃，执行自动保存`);
-    onSave(props.activeKey.includes('new'));
+    if (vditor.value.getValue() != note.value.content) {
+      onSave(props.activeKey.includes('new'),note.value.id);
+    }
   }
 }
 onMounted(() => {
