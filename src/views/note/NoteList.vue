@@ -20,8 +20,8 @@
                 <span style="font-size: 10px;font-family: monospace;">{{item.updateTime.replace('T', ' ')}}更新</span>
                 <span style="font-size: 10px;font-family: monospace;margin-left: 80px">{{item.createTime.replace('T', ' ')}}创建</span>
 
-                <share-alt-outlined key="share" style="margin-left: 100px" @click.stop="onCreatLink(item.id)"/>
-                <delete-outlined key="delete" style="color: red;margin-left: 20px" @click.stop="onDelete(item.id)"/>
+                <share-alt-outlined key="share" style="margin-left: 100px;font-size: 20px" @click.stop="onCreatLink(item.id)"/>
+                <delete-outlined key="delete" style="color: red;margin-left: 20px;font-size: 20px" @click.stop="onDelete(item.id)"/>
               </div>
             </template>
         </a-list-item>

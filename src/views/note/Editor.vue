@@ -41,7 +41,6 @@
       <a-button
           shape="circle"
           type="primary"
-          @click="onSave(activeKey.includes('new'),note.id)"
       >
         <SaveOutlined />
       </a-button>
@@ -127,7 +126,6 @@ function edit(item){
 }
 function onSave(isReload?,id?,cid?){
   let arr = props.activeKey.split('/')
-  console.log('arr',arr)
   if (isReload){
     note.value.categoryId = arr[arr.length-2]||cid
     note.value.id = null
@@ -139,7 +137,6 @@ function onSave(isReload?,id?,cid?){
   saveNote(note.value).then(resp=>{
     if (resp.code==200){
       if (isReload){
-        localStorage.removeItem(arr[arr.length-1])
         props.onEditTabKey(arr[arr.length-1],resp.data,note.value.title)
         note.value.id = resp.data
       }else if (vditorRef.value!) {
@@ -159,8 +156,11 @@ async function loadData(noteId?){
     getNoteById(noteId).then(resp=>{
       if (resp.code==200){
         note.value = JSON.parse(JSON.stringify(resp.data))
-        localStorage.removeItem(note.value.id)
-        init(noteId)
+        if (localStorage.getItem(note.value.id) && vditor.value){
+          localStorage.setItem(note.value.id,note.value.content)
+        }else {
+          init(noteId)
+        }
       }else {
         message.error(resp.msg)
       }
