@@ -156,8 +156,9 @@ async function loadData(noteId?){
     getNoteById(noteId).then(resp=>{
       if (resp.code==200){
         note.value = JSON.parse(JSON.stringify(resp.data))
-        if (localStorage.getItem(note.value.id) && vditor.value){
-          localStorage.setItem(note.value.id,note.value.content)
+        if (localStorage.getItem(noteId) && vditor.value){
+          localStorage.setItem(noteId,note.value.content)
+          vditor.value.setValue(note.value.content);
         }else {
           init(noteId)
         }
